@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/*
+  LoneWolf Digital Inc — brand tokens.
+  Palette and typography follow the Master KB (v1.4). The warm neutral ramp
+  (paper/surface/ink/line) is carried over from the client-facing project
+  tracker so the internal studio app and the client dashboard read as one system.
+*/
+@theme {
+  /* Brand */
+  --color-orange: #ff6b00;
+  --color-orange-dim: #ffe4cc;
+  --color-orange-deep: #e35f00;
+  --color-purple: #5b0fa8;
+  --color-purple-dim: #ede3f9;
+  --color-purple-deep: #490c86;
+  --color-red: #cc1a00;
+  --color-red-dim: #fbe1dc;
+  --color-gold: #ffb300;
+  --color-gold-dim: #fff3d6;
+  --color-gold-deep: #8a6100;
+
+  /* Dark shell (sidebar / inverted surfaces) */
+  --color-night: #1e1633;
+  --color-night-soft: #2e2450;
+  --color-night-line: #3b2f60;
+
+  /* Warm neutrals */
+  --color-paper: #fafaf8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f2ef;
+  --color-ink: #221f1c;
+  --color-ink-soft: #6e6a65;
+  --color-ink-faint: #a7a29b;
+  --color-line: #e7e4de;
+
+  /* Semantic */
+  --color-positive: #10b981;
+  --color-positive-dim: #e7f7f1;
+
+  --font-sans: "Montserrat", ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+
+  --radius-brand: 14px;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    Display type is uppercase across the brand. Applied via the `.disp` class
+    rather than a bare h1..h4 selector so page copy can opt out where sentence
+    case reads better (long table headers, inline labels).
+  */
+  .disp {
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer utilities {
+  /* Used on scroll containers where a visible track adds noise. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 100px;
+  }
+}

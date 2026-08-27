@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "profiles": {
+      "title": "User Profile",
+      "description": "Extended user information and roles",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "full_name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "manager", "team", "client"] },
+        "avatar_url": { "type": "string" },
+        "company_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "full_name", "role"]
+    },
+    "projects": {
+      "title": "Project",
+      "description": "Studio project details",
+      "type": "object",
+      "properties": {
+        "company_id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["planning", "active", "review", "completed", "archived"] },
+        "budget": { "type": "number" },
+        "start_date": { "type": "string", "format": "date" },
+        "deadline": { "type": "string", "format": "date" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["company_id", "name", "status"]
+    },
+    "tasks": {
+      "title": "Task",
+      "description": "Project tasks",
+      "type": "object",
+      "properties": {
+        "project_id": { "type": "string" },
+        "assigned_to": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["todo", "in-progress", "review", "done"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "due_date": { "type": "string", "format": "date" }
+      },
+      "required": ["project_id", "title", "status"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": "profiles",
+      "description": "User profiles"
+    },
+    "/projects/{projectId}": {
+      "schema": "projects",
+      "description": "Studio projects"
+    },
+    "/projects/{projectId}/tasks/{taskId}": {
+      "schema": "tasks",
+      "description": "Tasks within a project"
+    }
+  }
+}
