@@ -24,7 +24,7 @@ import {
 } from '@/src/components/ui';
 import { cn, formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
 import { isOverdue, outstandingTotal, paidTotal } from '@/src/lib/finance';
-import { downloadInvoicePdf } from '@/src/lib/invoicePdf';
+import { downloadInvoicePdf } from '@/src/lib/pdf';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Invoice, InvoiceStatus } from '@/src/types';
 

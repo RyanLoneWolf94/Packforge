@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Button, Card, EmptyState, PageHeader, StatusPill } from '@/src/components/ui';
 import { cn, downloadFile, formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
 import { quoteTotal } from '@/src/lib/finance';
-import { downloadInvoicePdf } from '@/src/lib/invoicePdf';
+import { downloadInvoicePdf, downloadQuotePdf } from '@/src/lib/pdf';
 import { useStudio } from '@/src/store/StudioStore';
 import type { InvoiceStatus, QuoteStatus } from '@/src/types';
 import { usePortalClient } from './usePortalClient';
@@ -127,7 +127,7 @@ const QUOTE_TONE: Record<QuoteStatus, 'positive' | 'danger' | 'warning' | 'neutr
 
 export function PortalQuotes() {
   const client = usePortalClient();
-  const { quotes, update } = useStudio();
+  const { quotes, update, settings } = useStudio();
 
   const rows = quotes
     .filter((q) => q.clientId === client.id && q.status !== 'draft')
@@ -200,28 +200,38 @@ export function PortalQuotes() {
                   ))}
                 </div>
 
-                {awaiting ? (
-                  <div className="flex gap-2.5 mt-5 pt-5 border-t border-line">
-                    <Button
-                      icon={CheckCircle2}
-                      onClick={() => {
-                        update('quotes', quote.id, { status: 'accepted' });
-                        toast.success('Quote accepted — the studio has been notified');
-                      }}
-                    >
-                      Accept Quote
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        update('quotes', quote.id, { status: 'rejected' });
-                        toast.info('Quote declined');
-                      }}
-                    >
-                      Decline
-                    </Button>
-                  </div>
-                ) : null}
+                <div className="flex gap-2.5 mt-5 pt-5 border-t border-line flex-wrap">
+                  {awaiting ? (
+                    <>
+                      <Button
+                        icon={CheckCircle2}
+                        onClick={() => {
+                          update('quotes', quote.id, { status: 'accepted' });
+                          toast.success('Quote accepted — the studio has been notified');
+                        }}
+                      >
+                        Accept Quote
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          update('quotes', quote.id, { status: 'rejected' });
+                          toast.info('Quote declined');
+                        }}
+                      >
+                        Decline
+                      </Button>
+                    </>
+                  ) : null}
+                  <Button
+                    variant="ghost"
+                    icon={Download}
+                    className={awaiting ? 'ml-auto' : ''}
+                    onClick={() => downloadQuotePdf({ quote, client, settings })}
+                  >
+                    Download PDF
+                  </Button>
+                </div>
               </Card>
             );
           })}

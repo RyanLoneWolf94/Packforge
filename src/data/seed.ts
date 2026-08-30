@@ -16,6 +16,7 @@ import type {
   TimeEntry,
 } from '../types';
 import { STUDIO } from '../brand';
+import { SEED_EMAIL_BODIES } from '../lib/emailTemplate';
 import { phasesForTier, timelineForTier } from './phaseTemplates';
 
 /**
@@ -656,28 +657,35 @@ const emailTemplates: EmailTemplate[] = [
     name: 'Invoice Sent',
     subject: 'Invoice {{invoiceNumber}} from {{studioName}}',
     category: 'Invoice',
-    body: 'Hi {{clientName}},\n\nPlease find your invoice {{invoiceNumber}} for {{projectName}} attached. You can view everything in your portal.\n\nThank you,\n{{studioLead}}',
+    body: SEED_EMAIL_BODIES.invoice,
   },
   {
     id: 'et-2',
     name: 'Quote Ready',
     subject: 'Your quote for {{projectName}}',
     category: 'Quote',
-    body: "Hi {{clientName}},\n\nYour quote for {{projectName}} is ready to review in your portal. Accept it there and we'll get started.\n\n{{studioLead}}",
+    body: SEED_EMAIL_BODIES.quote,
   },
   {
     id: 'et-3',
     name: 'Phase Complete',
     subject: '{{projectName}} — a phase just wrapped',
     category: 'Update',
-    body: "Hi {{clientName}},\n\nGood news — we've completed a phase on {{projectName}}. Head to your portal to see the latest deliverables.\n\n{{studioLead}}",
+    body: SEED_EMAIL_BODIES.phaseComplete,
   },
   {
     id: 'et-4',
     name: 'Contract Expiring',
     subject: 'Notice: contract expiring soon',
     category: 'Reminder',
-    body: 'Hi {{clientName}},\n\nThis is a friendly reminder that your contract expires on {{expiryDate}}. Let us know if you would like to renew.\n\n{{studioLead}}',
+    body: SEED_EMAIL_BODIES.contractExpiring,
+  },
+  {
+    id: 'et-5',
+    name: 'Client Welcome',
+    subject: 'Welcome to {{studioName}}',
+    category: 'Onboarding',
+    body: SEED_EMAIL_BODIES.welcome,
   },
 ];
 

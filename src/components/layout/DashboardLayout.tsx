@@ -23,6 +23,7 @@ import React, { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
 import { STUDIO } from "@/src/brand";
+import { Logo } from "@/src/components/Logo";
 import { useStudio } from "@/src/store/StudioStore";
 import { projectProgress } from "@/src/lib/tracker";
 
@@ -89,18 +90,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-paper flex">
       <aside className="hidden md:flex flex-col w-64 bg-night text-slate-300 shadow-xl z-20 shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-night-line">
-          <Link to="/admin" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-orange flex items-center justify-center shadow-lg shadow-orange/20">
-              <span className="text-white font-extrabold text-base">LW</span>
-            </div>
-            <div className="leading-tight">
-              <div className="disp text-white font-extrabold text-[15px] tracking-wide">
-                {STUDIO.productName}
-              </div>
-              <div className="text-[10px] text-white/40 font-semibold">
-                {STUDIO.shortName}
-              </div>
-            </div>
+          <Link to="/admin" className="flex items-center">
+            <Logo variant="light" imgClassName="h-8" />
           </Link>
         </div>
 

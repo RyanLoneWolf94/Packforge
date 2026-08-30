@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ArrowUpRight,
   CheckCircle2,
+  Download,
   Edit2,
   Plus,
   ScrollText,
@@ -26,6 +27,7 @@ import {
 import { BRANDING_PACKAGES, type TierId } from '@/src/brand';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
 import { quoteTotal } from '@/src/lib/finance';
+import { downloadQuotePdf } from '@/src/lib/pdf';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Quote, QuoteMilestone, QuoteStatus } from '@/src/types';
 
@@ -63,7 +65,7 @@ const blankForm = (count: number): FormState => ({
 });
 
 export default function Quotations() {
-  const { quotes, clients, clientFor, add, update, remove, createProject } = useStudio();
+  const { quotes, clients, settings, clientFor, add, update, remove, createProject } = useStudio();
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -286,6 +288,13 @@ export default function Quotations() {
                   </Button>
                 ) : null}
                 <div className="flex items-center gap-1 ml-auto">
+                  <button
+                    onClick={() => downloadQuotePdf({ quote, client: clientFor(quote), settings })}
+                    title="Download PDF"
+                    className="p-2 text-ink-faint hover:text-orange hover:bg-orange-dim rounded-lg transition-colors"
+                  >
+                    <Download size={15} />
+                  </button>
                   <button
                     onClick={() => openEdit(quote)}
                     title="Edit"

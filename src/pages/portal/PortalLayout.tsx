@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { Card, EmptyState } from '@/src/components/ui';
-import { STUDIO } from '@/src/brand';
+import { Logo } from '@/src/components/Logo';
 import { cn, initials } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Client } from '@/src/types';
@@ -97,17 +97,7 @@ function PortalHeader({ client }: { client: Client }) {
   return (
     <header className="border-b border-line bg-surface sticky top-0 z-40">
       <div className="max-w-[1120px] mx-auto px-6 lg:px-7 py-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-orange flex items-center justify-center">
-            <span className="text-white font-extrabold text-sm">LW</span>
-          </div>
-          <div className="leading-tight">
-            <div className="disp font-extrabold text-sm text-ink tracking-wide">
-              {STUDIO.shortName}
-            </div>
-            <div className="text-[10.5px] text-ink-soft font-semibold">{STUDIO.tagline}</div>
-          </div>
-        </div>
+        <Logo variant="color" imgClassName="h-9" />
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:block text-right leading-tight">

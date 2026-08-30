@@ -12,6 +12,7 @@ import {
   StatusPill,
   Textarea,
 } from '@/src/components/ui';
+import { wrapEmail } from '@/src/lib/emailTemplate';
 import { useStudio } from '@/src/store/StudioStore';
 import type { EmailTemplate } from '@/src/types';
 
@@ -25,17 +26,43 @@ const VARIABLES = [
   'clientName',
   'projectName',
   'invoiceNumber',
+  'invoiceAmount',
+  'quoteAmount',
+  'dueDate',
+  'validUntil',
   'expiryDate',
+  'portalLink',
   'studioName',
   'studioLead',
+  'studioEmail',
 ];
+
+/** Plain-text extract of an HTML body, for compact card previews. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\{\{[^}]+\}\}/g, '…')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 type FormState = Omit<EmailTemplate, 'id'>;
 
 const blankForm = (): FormState => ({ name: '', subject: '', body: '', category: 'General' });
 
 export default function Emails() {
-  const { emailTemplates, add, update, remove } = useStudio();
+  const { emailTemplates, settings, add, update, remove } = useStudio();
+
+  // Brand context for rendering a realistic preview of the wrapped email.
+  const brand = {
+    studioName: settings.studioName,
+    tagline: "Your Brand's Digital Pack",
+    website: settings.website,
+    email: settings.email,
+    phone: settings.phone,
+    logoUrl: '/lonewolf-logo.png',
+  };
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -157,8 +184,8 @@ export default function Emails() {
 
               <h3 className="font-bold text-ink leading-tight">{template.name}</h3>
               <p className="text-xs text-ink-soft mt-1 font-mono truncate">{template.subject}</p>
-              <p className="text-[13px] text-ink-soft mt-3 line-clamp-3 flex-1 whitespace-pre-wrap">
-                {template.body}
+              <p className="text-[13px] text-ink-soft mt-3 line-clamp-3 flex-1">
+                {stripHtml(template.body)}
               </p>
 
               <button
@@ -248,13 +275,17 @@ export default function Emails() {
         onClose={() => setPreview(null)}
         title={preview?.name ?? 'Preview'}
         subtitle={preview?.subject}
-        width="max-w-xl"
+        width="max-w-2xl"
       >
-        <div className="bg-surface-2 rounded-xl p-6">
-          <div className="bg-surface rounded-lg border border-line p-6 whitespace-pre-wrap text-[13.5px] text-ink leading-relaxed">
-            {preview?.body}
-          </div>
-        </div>
+        {preview ? (
+          // Render the wrapped email in an isolated iframe so its inline styles
+          // can't leak into the app and vice-versa — an accurate email preview.
+          <iframe
+            title="Email preview"
+            className="w-full h-[65vh] rounded-lg border border-line bg-white"
+            srcDoc={wrapEmail(preview.body, brand)}
+          />
+        ) : null}
       </Modal>
     </div>
   );
