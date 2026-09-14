@@ -4,12 +4,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { toast } from 'sonner';
 import type { TierId } from '../brand';
 import { phasesForTier, timelineForTier } from '../data/phaseTemplates';
 import { SEED } from '../data/seed';
+import { supabase } from '../lib/supabase';
 import type {
   ActionItem,
   Campaign,
@@ -30,15 +33,19 @@ import type {
 } from '../types';
 
 /**
- * Single source of truth for studio data, persisted to localStorage.
+ * Single source of truth for studio data, now backed by Supabase.
  *
- * Every page reads from here rather than holding its own hardcoded array, so a
- * project created in the admin workspace shows up in the client portal, the
- * dashboard rollups and the invoice list without any extra wiring. Swapping in
- * a real backend later means replacing the persistence in this file only.
+ * The context API is unchanged from the localStorage era on purpose: every page
+ * still reads collections and calls `add`/`update`/`remove` and the domain
+ * helpers exactly as before. What changed is underneath — reads come from
+ * Supabase on mount, and every mutation is applied optimistically to local
+ * state and then persisted. On a write failure we surface a toast and refetch
+ * so the UI can't drift from the database.
+ *
+ * This provider assumes an authenticated studio-admin session exists; it is
+ * only ever mounted behind `RequireAdmin`. The public client portal uses its
+ * own provider (`PortalStore`) fed by the `portal_snapshot` RPC.
  */
-
-const STORAGE_KEY = 'packforge.studio.v2';
 
 /** Array-backed collections, all sharing the generic add/update/remove API. */
 interface Collections {
@@ -69,7 +76,30 @@ type CollectionKey = keyof Collections;
 /** The element type stored in a given collection. */
 type Item<K extends CollectionKey> = StudioState[K][number];
 
+/** Every collection key === its Postgres table name (camelCase ones are quoted server-side). */
+const COLLECTION_KEYS: CollectionKey[] = [
+  'clients',
+  'projects',
+  'invoices',
+  'quotes',
+  'contracts',
+  'files',
+  'expenses',
+  'leads',
+  'team',
+  'timeEntries',
+  'emailTemplates',
+  'planTemplates',
+  'campaigns',
+  'newsletters',
+];
+
 interface StudioContextValue extends StudioState {
+  /** True until the first load from Supabase resolves. */
+  loading: boolean;
+  /** Re-pull everything from Supabase (used as the rollback on a failed write). */
+  refresh: () => Promise<void>;
+
   /**
    * Generic CRUD over any collection. One typed API instead of thirty
    * hand-written methods — `add('leads', {...})` is checked against `Lead`.
@@ -117,7 +147,9 @@ interface StudioContextValue extends StudioState {
   resetToSeed: () => void;
 }
 
-const StudioContext = createContext<StudioContextValue | null>(null);
+// Exported so the portal provider can supply the same shape to shared pages
+// (PhaseTracker et al.) that call `useStudio()`.
+export const StudioContext = createContext<StudioContextValue | null>(null);
 
 let seq = 0;
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
@@ -132,7 +164,7 @@ function slugify(value: string) {
   );
 }
 
-const EMPTY: Collections = {
+const EMPTY_STATE: StudioState = {
   clients: [],
   projects: [],
   invoices: [],
@@ -147,61 +179,87 @@ const EMPTY: Collections = {
   planTemplates: [],
   campaigns: [],
   newsletters: [],
+  settings: SEED.settings,
 };
 
-function loadState(): StudioState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<StudioState>;
-      // Guard against a truncated or hand-edited payload leaving the app blank,
-      // and backfill collections added after the payload was written.
-      if (Array.isArray(parsed.projects) && Array.isArray(parsed.clients)) {
-        // Deep-merge settings so a payload written before a settings field
-        // existed still gets the new defaults rather than a hole.
-        return {
-          ...EMPTY,
-          ...SEED,
-          ...parsed,
-          settings: {
-            ...SEED.settings,
-            ...parsed.settings,
-            notifications: {
-              ...SEED.settings.notifications,
-              ...parsed.settings?.notifications,
-            },
-            integrations: {
-              ...SEED.settings.integrations,
-              ...parsed.settings?.integrations,
-            },
-          },
-        } as StudioState;
-      }
-    }
-  } catch (err) {
-    console.error('Could not read stored studio data, falling back to seed.', err);
-  }
-  return { ...SEED };
-}
-
 export function StudioProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<StudioState>(loadState);
+  const [state, setState] = useState<StudioState>(EMPTY_STATE);
+  const [loading, setLoading] = useState(true);
 
+  // Mirror of state for mutators that need the current entity synchronously
+  // (nested project edits) without threading it through setState.
+  const stateRef = useRef(state);
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (err) {
-      console.error('Could not persist studio data.', err);
-    }
+    stateRef.current = state;
   }, [state]);
 
-  /** Apply a change to one project, leaving the rest of the state untouched. */
-  const patchProject = useCallback((projectId: string, fn: (project: Project) => Project) => {
-    setState((prev) => ({
-      ...prev,
-      projects: prev.projects.map((p) => (p.id === projectId ? fn(p) : p)),
-    }));
+  const refresh = useCallback(async () => {
+    const results = await Promise.all(
+      COLLECTION_KEYS.map((key) => supabase.from(key).select('*')),
+    );
+    const settingsRes = await supabase.from('settings').select('*').eq('id', 'studio').maybeSingle();
+
+    const next = { ...EMPTY_STATE } as StudioState;
+    COLLECTION_KEYS.forEach((key, i) => {
+      const { data, error } = results[i];
+      if (error) {
+        console.error(`Failed to load ${key}:`, error.message);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (next as any)[key] = data ?? [];
+    });
+    next.settings = (settingsRes.data as StudioSettings | null) ?? SEED.settings;
+
+    setState(next);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    refresh().catch((err) => {
+      console.error('Initial studio load failed:', err);
+      setLoading(false);
+    });
+  }, [refresh]);
+
+  /** Fire a persistence promise; on failure, toast and resync from the server. */
+  const persist = useCallback(
+    (promise: PromiseLike<{ error: { message: string } | null }>, label: string) => {
+      Promise.resolve(promise).then(({ error }) => {
+        if (error) {
+          console.error(`${label} failed:`, error.message);
+          toast.error(`Couldn't save — ${label}. Reverting.`);
+          refresh().catch(() => undefined);
+        }
+      });
+    },
+    [refresh],
+  );
+
+  /** Apply a change to one project locally and persist the whole row. */
+  const patchProject = useCallback(
+    (projectId: string, fn: (project: Project) => Project) => {
+      const current = stateRef.current.projects.find((p) => p.id === projectId);
+      if (!current) return;
+      const nextProject = fn(current);
+      setState((prev) => ({
+        ...prev,
+        projects: prev.projects.map((p) => (p.id === projectId ? nextProject : p)),
+      }));
+      persist(
+        supabase
+          .from('projects')
+          .update({
+            phases: nextProject.phases,
+            timeline: nextProject.timeline,
+            actionItems: nextProject.actionItems,
+            brandSnapshot: nextProject.brandSnapshot ?? null,
+          })
+          .eq('id', projectId),
+        'update project',
+      );
+    },
+    [persist],
+  );
 
   const patchPhase = useCallback(
     (
@@ -220,10 +278,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StudioContextValue>(() => {
     return {
       ...state,
+      loading,
+      refresh,
 
       add(key, item) {
         const created = { ...(item as object), id: uid(key.slice(0, 2)) } as Item<typeof key>;
         setState((prev) => ({ ...prev, [key]: [created, ...prev[key]] }) as StudioState);
+        persist(supabase.from(key).insert(created as object), `add ${key}`);
         return created;
       },
 
@@ -237,6 +298,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               ),
             }) as StudioState,
         );
+        persist(supabase.from(key).update(patch as object).eq('id', id), `update ${key}`);
       },
 
       remove(key, id) {
@@ -247,10 +309,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               [key]: (prev[key] as { id: string }[]).filter((row) => row.id !== id),
             }) as StudioState,
         );
+        persist(supabase.from(key).delete().eq('id', id), `remove ${key}`);
       },
 
       updateSettings(patch) {
         setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }));
+        persist(
+          supabase.from('settings').update(patch as object).eq('id', 'studio'),
+          'update settings',
+        );
       },
 
       createProject(input) {
@@ -271,16 +338,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           phases: phasesForTier(input.tier),
           timeline: timelineForTier(input.tier),
           actionItems: [],
+          archived: false,
         };
         setState((prev) => ({ ...prev, projects: [project, ...prev.projects] }));
+        persist(supabase.from('projects').insert(project as object), 'create project');
         return project;
       },
 
       deleteProject(id) {
+        // The DB FKs null out projectId on dependents; mirror that locally.
         setState((prev) => ({
           ...prev,
           projects: prev.projects.filter((p) => p.id !== id),
-          // Detach rather than delete: the money and paperwork outlive the project.
           invoices: prev.invoices.map((i) =>
             i.projectId === id ? { ...i, projectId: undefined } : i,
           ),
@@ -288,7 +357,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             c.projectId === id ? { ...c, projectId: undefined } : c,
           ),
           files: prev.files.map((f) => (f.projectId === id ? { ...f, projectId: undefined } : f)),
+          expenses: prev.expenses.map((e) =>
+            e.projectId === id ? { ...e, projectId: undefined } : e,
+          ),
+          timeEntries: prev.timeEntries.map((t) =>
+            t.projectId === id ? { ...t, projectId: undefined } : t,
+          ),
+          quotes: prev.quotes.map((q) =>
+            q.convertedProjectId === id ? { ...q, convertedProjectId: undefined } : q,
+          ),
         }));
+        persist(supabase.from('projects').delete().eq('id', id), 'delete project');
       },
 
       toggleDeliverable(projectId, phaseId, deliverableId) {
@@ -345,9 +424,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       toggleTimelineWeek(projectId, weekId) {
         patchProject(projectId, (project) => ({
           ...project,
-          timeline: project.timeline.map((w) =>
-            w.id === weekId ? { ...w, done: !w.done } : w,
-          ),
+          timeline: project.timeline.map((w) => (w.id === weekId ? { ...w, done: !w.done } : w)),
         }));
       },
 
@@ -359,20 +436,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString().slice(0, 10),
         };
         setState((prev) => ({ ...prev, clients: [client, ...prev.clients] }));
+        persist(supabase.from('clients').insert(client as object), 'create client');
         return client;
       },
 
       deleteClient(id) {
+        // The DB cascades everything below; mirror that locally.
         setState((prev) => ({
           ...prev,
           clients: prev.clients.filter((c) => c.id !== id),
-          // Cascade: nothing below can be resolved without its client.
           projects: prev.projects.filter((p) => p.clientId !== id),
           invoices: prev.invoices.filter((i) => i.clientId !== id),
           quotes: prev.quotes.filter((q) => q.clientId !== id),
           contracts: prev.contracts.filter((c) => c.clientId !== id),
           files: prev.files.filter((f) => f.clientId !== id),
         }));
+        persist(supabase.from('clients').delete().eq('id', id), 'delete client');
       },
 
       clientFor(item) {
@@ -392,10 +471,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       },
 
       resetToSeed() {
-        setState({ ...SEED });
+        // Data now lives in the cloud; a local reset would just be overwritten.
+        toast.info('Demo reset is disabled in cloud mode.');
+        refresh().catch(() => undefined);
       },
     };
-  }, [state, patchProject, patchPhase]);
+  }, [state, loading, refresh, persist, patchProject, patchPhase]);
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;
 }

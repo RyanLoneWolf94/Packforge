@@ -7,6 +7,7 @@ import {
   FolderKanban,
   GaugeCircle,
   LayoutDashboard,
+  LogOut,
   Mail,
   Megaphone,
   PenTool,
@@ -21,10 +22,11 @@ import {
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/src/lib/utils";
+import { cn, initials } from "@/src/lib/utils";
 import { STUDIO } from "@/src/brand";
 import { Logo } from "@/src/components/Logo";
 import { useStudio } from "@/src/store/StudioStore";
+import { useAuth } from "@/src/auth/AuthProvider";
 import { projectProgress } from "@/src/lib/tracker";
 
 const MENU_SECTIONS = [
@@ -73,6 +75,7 @@ const MENU_SECTIONS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { loading } = useStudio();
 
   // Longest matching prefix wins, so nested routes like
   // `/admin/tracker/:projectId` still title as "Tracker" rather than falling
@@ -150,17 +153,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <GlobalSearch />
           <div className="flex items-center gap-4 shrink-0">
             <NotificationBell />
-            <Link
-              to="/admin/settings"
-              className="w-9 h-9 bg-night text-white rounded-full flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-orange/50 transition-all"
-              title={`${STUDIO.lead} · ${STUDIO.shortName}`}
-            >
-              RM
-            </Link>
+            <UserMenu />
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 lg:px-8 py-7">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 lg:px-8 py-7">
+          {loading ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="w-8 h-8 rounded-full border-2 border-orange border-t-transparent animate-spin" />
+            </div>
+          ) : (
+            children
+          )}
+        </div>
       </main>
     </div>
   );
@@ -252,6 +257,48 @@ function GlobalSearch() {
               </button>
             ))
           )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Signed-in identity, with a link to settings and a sign-out control. */
+function UserMenu() {
+  const { session, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const email = session?.user.email ?? "";
+  const label = email || `${STUDIO.lead} · ${STUDIO.shortName}`;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="w-9 h-9 bg-night text-white rounded-full flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-orange/50 transition-all"
+        title={label}
+      >
+        {email ? initials(email.split("@")[0]) : "RM"}
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-line rounded-xl shadow-lg overflow-hidden z-40">
+          <div className="px-4 py-3 border-b border-line">
+            <div className="text-[11px] text-ink-faint">Signed in as</div>
+            <div className="text-[13px] font-bold text-ink truncate">{email || STUDIO.lead}</div>
+          </div>
+          <Link
+            to="/admin/settings"
+            className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink-soft hover:bg-surface-2 hover:text-ink transition-colors"
+          >
+            <SettingsIcon size={15} /> Studio settings
+          </Link>
+          <button
+            onClick={() => signOut()}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red hover:bg-red-dim transition-colors border-t border-line"
+          >
+            <LogOut size={15} /> Sign out
+          </button>
         </div>
       ) : null}
     </div>

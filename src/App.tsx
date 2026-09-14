@@ -4,6 +4,9 @@ import { Toaster } from "sonner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { StudioProvider } from "./store/StudioStore";
+import { PortalProvider } from "./store/PortalStore";
+import { AuthProvider } from "./auth/AuthProvider";
+import RequireAdmin from "./auth/RequireAdmin";
 
 // Eager: the routes most sessions hit first.
 import Dashboard from "./pages/Dashboard";
@@ -49,18 +52,32 @@ function RouteFallback() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <StudioProvider>
+      <AuthProvider>
         <Router>
           <Toaster position="bottom-right" richColors />
           <Routes>
             {/* Client-facing portal — a dashboard in its own right, with the
                 phase tracker as one section of it. `/portal/:token` is the
-                shareable link; bare `/portal` previews the first client. */}
+                shareable link, fed by the read-only `portal_snapshot` RPC. */}
             <Route path="/" element={<Navigate to="/admin" replace />} />
-            <Route path="/portal" element={<PortalLayout />}>
+            <Route
+              path="/portal"
+              element={
+                <PortalProvider>
+                  <PortalLayout />
+                </PortalProvider>
+              }
+            >
               <Route index element={<PortalOverview />} />
             </Route>
-            <Route path="/portal/:token" element={<PortalLayout />}>
+            <Route
+              path="/portal/:token"
+              element={
+                <PortalProvider>
+                  <PortalLayout />
+                </PortalProvider>
+              }
+            >
               <Route index element={<PortalOverview />} />
               <Route path="progress" element={<PortalProgress />} />
               <Route path="invoices" element={<PortalInvoices />} />
@@ -71,41 +88,47 @@ export default function App() {
               <Route path="*" element={<PortalOverview />} />
             </Route>
 
+            {/* Studio workspace — gated to allow-listed admins, then the
+                Supabase-backed store is mounted for the signed-in session. */}
             <Route
               path="/admin/*"
               element={
-                <DashboardLayout>
-                  <Suspense fallback={<RouteFallback />}>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/tracker" element={<ProjectTracker />} />
-                      <Route path="/tracker/:projectId" element={<ProjectTracker />} />
-                      <Route path="/projects" element={<Projects />} />
-                      <Route path="/teams" element={<Teams />} />
-                      <Route path="/invoices" element={<Invoices />} />
-                      <Route path="/clients" element={<Clients />} />
-                      <Route path="/leads" element={<Leads />} />
-                      <Route path="/quotations" element={<Quotations />} />
-                      <Route path="/contracts" element={<Contracts />} />
-                      <Route path="/timelines" element={<Timelines />} />
-                      <Route path="/time" element={<TimeTracking />} />
-                      <Route path="/overview" element={<Overview />} />
-                      <Route path="/expenses" element={<Expenses />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/files" element={<Files />} />
-                      <Route path="/emails" element={<Emails />} />
-                      <Route path="/marketing/campaigns" element={<Campaigns />} />
-                      <Route path="/marketing/newsletters" element={<Newsletters />} />
-                      <Route path="/marketing/integrations" element={<Integrations />} />
-                      <Route path="*" element={<Dashboard />} />
-                    </Routes>
-                  </Suspense>
-                </DashboardLayout>
+                <RequireAdmin>
+                  <StudioProvider>
+                    <DashboardLayout>
+                      <Suspense fallback={<RouteFallback />}>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/tracker" element={<ProjectTracker />} />
+                          <Route path="/tracker/:projectId" element={<ProjectTracker />} />
+                          <Route path="/projects" element={<Projects />} />
+                          <Route path="/teams" element={<Teams />} />
+                          <Route path="/invoices" element={<Invoices />} />
+                          <Route path="/clients" element={<Clients />} />
+                          <Route path="/leads" element={<Leads />} />
+                          <Route path="/quotations" element={<Quotations />} />
+                          <Route path="/contracts" element={<Contracts />} />
+                          <Route path="/timelines" element={<Timelines />} />
+                          <Route path="/time" element={<TimeTracking />} />
+                          <Route path="/overview" element={<Overview />} />
+                          <Route path="/expenses" element={<Expenses />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/files" element={<Files />} />
+                          <Route path="/emails" element={<Emails />} />
+                          <Route path="/marketing/campaigns" element={<Campaigns />} />
+                          <Route path="/marketing/newsletters" element={<Newsletters />} />
+                          <Route path="/marketing/integrations" element={<Integrations />} />
+                          <Route path="*" element={<Dashboard />} />
+                        </Routes>
+                      </Suspense>
+                    </DashboardLayout>
+                  </StudioProvider>
+                </RequireAdmin>
               }
             />
           </Routes>
         </Router>
-      </StudioProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
