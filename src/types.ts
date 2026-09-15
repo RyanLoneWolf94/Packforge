@@ -101,7 +101,38 @@ export interface Project {
   timeline: TimelineWeek[];
   actionItems: ActionItem[];
   brandSnapshot?: BrandSnapshot;
-  archived?: boolean;
+}
+
+/* ---------------------------- Internal tasks --------------------------- */
+
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+/** Board lanes. Stored as text so a future custom lane doesn't need a migration. */
+export type TaskLane = 'Todo' | 'In Progress' | 'Done';
+
+/**
+ * A studio-internal working task on a project's Kanban board. Deliberately
+ * separate from `Deliverable`: deliverables are the client-facing contract of
+ * what gets shipped, these are how the studio gets there, and clients never
+ * see them.
+ */
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  lane: TaskLane;
+  title: string;
+  /** Priority tags — 'High' | 'Medium' | 'Low' in practice. */
+  tags: string[];
+  dueDate: string;
+  assignee: string;
+  subtasks: Subtask[];
+  /** Position within its lane. */
+  sortOrder: number;
+  createdAt: string;
 }
 
 /* ------------------------------- Invoices ------------------------------ */
@@ -171,6 +202,13 @@ export interface Contract {
   signedBy?: string;
   signedAt?: string;
   autoRemind: boolean;
+  /** The agreement's terms, shown to the client in the portal for review. */
+  body: string;
+  /**
+   * Evidence of signing: a PNG data URL when drawn, or `TEXT:<name>:<font>`
+   * when typed. Captured at signing rather than discarded.
+   */
+  signature?: string;
 }
 
 /* --------------------------------- Files ------------------------------- */

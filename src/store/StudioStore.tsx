@@ -26,6 +26,7 @@ import type {
   Newsletter,
   PlanTemplate,
   Project,
+  ProjectTask,
   Quote,
   StudioSettings,
   TeamMember,
@@ -59,6 +60,7 @@ interface Collections {
   leads: Lead[];
   team: TeamMember[];
   timeEntries: TimeEntry[];
+  projectTasks: ProjectTask[];
   emailTemplates: EmailTemplate[];
   planTemplates: PlanTemplate[];
   campaigns: Campaign[];
@@ -88,6 +90,7 @@ const COLLECTION_KEYS: CollectionKey[] = [
   'leads',
   'team',
   'timeEntries',
+  'projectTasks',
   'emailTemplates',
   'planTemplates',
   'campaigns',
@@ -194,6 +197,7 @@ const EMPTY_STATE: StudioState = {
   leads: [],
   team: [],
   timeEntries: [],
+  projectTasks: [],
   emailTemplates: [],
   planTemplates: [],
   campaigns: [],
@@ -377,7 +381,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           phases: phasesForTier(input.tier),
           timeline: timelineForTier(input.tier),
           actionItems: [],
-          archived: false,
         };
         setState((prev) => ({ ...prev, projects: [project, ...prev.projects] }));
         persist(
@@ -405,6 +408,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           timeEntries: prev.timeEntries.map((t) =>
             t.projectId === id ? { ...t, projectId: undefined } : t,
           ),
+          // Internal tasks belong to the project and are cascaded by the DB.
+          projectTasks: prev.projectTasks.filter((t) => t.projectId !== id),
           quotes: prev.quotes.map((q) =>
             q.convertedProjectId === id ? { ...q, convertedProjectId: undefined } : q,
           ),
@@ -492,15 +497,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       deleteClient(id) {
         // The DB cascades everything below; mirror that locally.
-        setState((prev) => ({
-          ...prev,
-          clients: prev.clients.filter((c) => c.id !== id),
-          projects: prev.projects.filter((p) => p.clientId !== id),
-          invoices: prev.invoices.filter((i) => i.clientId !== id),
-          quotes: prev.quotes.filter((q) => q.clientId !== id),
-          contracts: prev.contracts.filter((c) => c.clientId !== id),
-          files: prev.files.filter((f) => f.clientId !== id),
-        }));
+        setState((prev) => {
+          const goneProjects = new Set(
+            prev.projects.filter((p) => p.clientId === id).map((p) => p.id),
+          );
+          return {
+            ...prev,
+            clients: prev.clients.filter((c) => c.id !== id),
+            projects: prev.projects.filter((p) => p.clientId !== id),
+            invoices: prev.invoices.filter((i) => i.clientId !== id),
+            quotes: prev.quotes.filter((q) => q.clientId !== id),
+            contracts: prev.contracts.filter((c) => c.clientId !== id),
+            files: prev.files.filter((f) => f.clientId !== id),
+            // Cascades through the client's projects.
+            projectTasks: prev.projectTasks.filter((t) => !goneProjects.has(t.projectId)),
+          };
+        });
         persist(() => supabase.from('clients').delete().eq('id', id), 'delete client');
       },
 

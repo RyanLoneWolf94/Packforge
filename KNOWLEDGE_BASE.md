@@ -269,21 +269,28 @@ the portal must see) — and re-run the security advisor after any DDL.
 
 ---
 
-## 8b. Known gaps (verified 2026-09-15, not yet built)
+## 8b. Project lifecycle, the board, and contract review (built 2026-09-15)
 
-Found during a full sweep; none of these is a broken control, each is something
-the data model promises that no UI delivers:
-
-1. **Project status can never change.** `Projects.tsx` is read-only and nothing
-   anywhere writes `project.status`, so a created project stays `planning`
-   forever. `ProjectStatus` offers 5 values; only the seed ever set them.
-2. **Archiving isn't implemented.** `Project.archived` is only ever written as
-   `false` (in `createProject`), so the portal's `!p.archived` filter is a no-op.
-   Note the two parallel concepts — the `archived` boolean and
-   `status === 'archived'` — which should be reconciled when this is built.
-3. **The Kanban board is still browser-local.** `Projects.tsx` keeps tasks under
-   its own `project_tasks` localStorage key, so the board doesn't sync across
-   devices the way everything else now does.
+- **Status is set in `Projects.tsx`**, in the board header — the single place a
+  project's lifecycle moves through `planning → active → review → completed →
+  archived`.
+- **Archiving is one concept**: `status === 'archived'`. The old, never-written
+  `Project.archived` boolean is gone (column dropped). Archived projects are
+  excluded inside `portal_snapshot`, so their data never reaches the client's
+  browser — the portal's own filter is just belt-and-braces.
+- **The Kanban board is in Postgres** (`projectTasks`), not localStorage, so a
+  board follows the studio across devices. Tasks are deliberately distinct from
+  a phase's `Deliverable`: deliverables are the client-facing promise, tasks are
+  how the studio gets there, and clients never see them (the table is 401 to
+  anon and absent from the snapshot). The board has no drag-and-drop, so lane
+  changes are explicit ‹ › controls rather than misleading `cursor-grab` styling.
+- **Contracts carry `body` (terms) and a captured `signature`.** Clients read
+  the full agreement in the portal and sign it via `portal_sign_contract`, which
+  re-checks the token server-side and only accepts a `pending`/`draft` contract.
+  `SignatureModal` returns `{ signature, signerName }` — previously the
+  signature was captured and thrown away, and its "Upload" tab was a stub that
+  signed with a placeholder string. Render stored signatures with
+  `<SignaturePreview>`.
 
 ## 9. Assets the user must supply
 

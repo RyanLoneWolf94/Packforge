@@ -1,48 +1,115 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+import { cn } from '@/src/lib/utils';
+
+/**
+ * Captures a signature for a contract — drawn or typed.
+ *
+ * The result is handed back to the caller (and persisted on the contract), so
+ * a signed agreement carries real evidence of who signed rather than just a
+ * status flag.
+ */
+
+export interface SignatureResult {
+  /** PNG data URL when drawn, or `TEXT:<name>:<font>` when typed. */
+  signature: string;
+  signerName: string;
+}
 
 interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSign: (signatureData: string) => void;
+  onSign: (result: SignatureResult) => void;
   contractTitle: string;
+  /** Pre-fills the name field — usually the client's contact. */
+  defaultSigner?: string;
 }
 
-export default function SignatureModal({ isOpen, onClose, onSign, contractTitle }: SignatureModalProps) {
+const FONTS = [
+  { id: 'font-serif', label: 'Classic' },
+  { id: 'font-sans', label: 'Modern' },
+  { id: 'font-mono', label: 'Typed' },
+];
+
+/**
+ * Renders a stored signature, whichever way it was captured — a drawn PNG data
+ * URL or a `TEXT:<name>:<font>` marker.
+ */
+export function SignaturePreview({
+  signature,
+  className,
+}: {
+  signature?: string;
+  className?: string;
+}) {
+  if (!signature) return null;
+
+  if (signature.startsWith('TEXT:')) {
+    const [, text, font] = signature.split(':');
+    return (
+      <span className={cn('text-2xl text-ink leading-none', font || 'font-serif', className)}>
+        {text}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={signature}
+      alt="Signature"
+      className={cn('h-12 w-auto object-contain', className)}
+    />
+  );
+}
+
+export default function SignatureModal({
+  isOpen,
+  onClose,
+  onSign,
+  contractTitle,
+  defaultSigner = '',
+}: SignatureModalProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
-  const [activeTab, setActiveTab] = useState<'draw' | 'type' | 'upload'>('draw');
-  const [typedSignature, setTypedSignature] = useState('');
+  const [tab, setTab] = useState<'draw' | 'type'>('draw');
+  const [typed, setTyped] = useState('');
   const [fontFamily, setFontFamily] = useState('font-serif');
+  const [name, setName] = useState(defaultSigner);
 
-  const handleClear = () => {
-    sigCanvas.current?.clear();
-  };
-
-  const handleSave = () => {
-    let signatureData = '';
-    
-    if (activeTab === 'draw' && !sigCanvas.current?.isEmpty()) {
-      signatureData = sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png') || '';
-    } else if (activeTab === 'type' && typedSignature.trim() !== '') {
-      // In a real app, we might render this to a canvas to get an image,
-      // or save the text and font. For now, we'll prefix text sign.
-      signatureData = `TEXT:${typedSignature}:${fontFamily}`;
-    } else if (activeTab === 'upload') {
-      // Handle file upload processing here
-      signatureData = "UPLOADED_IMAGE_DATA_URL";
-    }
-
-    if (signatureData) {
-      onSign(signatureData);
-      onClose();
-    } else {
-        alert("Please provide a signature.");
-    }
-  };
+  // Re-seed the name whenever the modal is reopened for a different contract.
+  useEffect(() => {
+    if (isOpen) setName(defaultSigner);
+  }, [isOpen, defaultSigner]);
 
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    const signerName = name.trim();
+    if (!signerName) {
+      toast.error('Enter your full name to sign');
+      return;
+    }
+
+    let signature = '';
+    if (tab === 'draw') {
+      if (sigCanvas.current?.isEmpty()) {
+        toast.error('Draw your signature first');
+        return;
+      }
+      signature = sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png') ?? '';
+    } else {
+      if (!typed.trim()) {
+        toast.error('Type your signature first');
+        return;
+      }
+      signature = `TEXT:${typed.trim()}:${fontFamily}`;
+    }
+
+    onSign({ signature, signerName });
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -50,129 +117,132 @@ export default function SignatureModal({ isOpen, onClose, onSign, contractTitle 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-ink/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
+          exit={{ scale: 0.96, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+          className="bg-surface rounded-[14px] shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
         >
-          <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <div className="flex items-start justify-between gap-3 p-5 border-b border-line">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Sign Contract</h2>
-              <p className="text-sm text-slate-500">{contractTitle}</p>
+              <h2 className="disp text-lg font-extrabold text-ink">Sign Contract</h2>
+              <p className="text-[13px] text-ink-soft mt-0.5">{contractTitle}</p>
             </div>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              aria-label="Close"
+              className="p-1.5 text-ink-faint hover:text-ink hover:bg-surface-2 rounded-lg transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
-          <div className="p-4 flex gap-2 border-b border-slate-100">
-             <button
-                onClick={() => setActiveTab('draw')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'draw' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-             >
-                Draw
-             </button>
-             <button
-                onClick={() => setActiveTab('type')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'type' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-             >
-                Type
-             </button>
-             <button
-                onClick={() => setActiveTab('upload')}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'upload' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-             >
-                Upload
-             </button>
-          </div>
+          <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-1.5">
+                Full name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full legal name"
+                className="w-full px-4 py-2.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none transition-shadow focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder:text-ink-faint"
+              />
+            </div>
 
-          <div className="p-6 flex-1 overflow-y-auto">
-            {activeTab === 'draw' && (
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative h-[200px]">
+            <div className="flex gap-2">
+              {(['draw', 'type'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={cn(
+                    'flex-1 py-2 text-sm font-bold rounded-lg transition-colors capitalize',
+                    tab === t
+                      ? 'bg-purple-dim text-purple'
+                      : 'text-ink-soft hover:bg-surface-2',
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'draw' ? (
+              <div className="space-y-2">
+                <div className="border-2 border-dashed border-line rounded-xl bg-surface-2 relative h-[200px]">
                   <SignatureCanvas
                     ref={sigCanvas}
-                    canvasProps={{
-                      className: 'signature-canvas w-full h-full rounded-xl',
-                    }}
+                    canvasProps={{ className: 'signature-canvas w-full h-full rounded-xl' }}
                   />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <button
-                      onClick={handleClear}
-                      className="px-3 py-1 bg-white text-xs font-medium text-slate-600 border border-slate-200 rounded shadow-sm hover:bg-slate-50"
-                    >
-                      Clear
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => sigCanvas.current?.clear()}
+                    className="absolute top-2 right-2 px-3 py-1 bg-surface text-[11px] font-bold text-ink-soft border border-line rounded shadow-sm hover:text-ink"
+                  >
+                    Clear
+                  </button>
                 </div>
-                <p className="text-xs text-slate-500 text-center">Draw your signature clearly inside the box.</p>
+                <p className="text-[11px] text-ink-faint text-center">
+                  Draw your signature inside the box.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  placeholder="Type your signature"
+                  className="w-full px-4 py-2.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none transition-shadow focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder:text-ink-faint"
+                />
+                <div className="grid grid-cols-3 gap-2.5">
+                  {FONTS.map((font) => (
+                    <button
+                      key={font.id}
+                      onClick={() => setFontFamily(font.id)}
+                      className={cn(
+                        'border rounded-lg p-3 text-center transition-colors',
+                        font.id,
+                        fontFamily === font.id
+                          ? 'border-orange ring-1 ring-orange bg-orange-dim'
+                          : 'border-line hover:border-ink-faint',
+                      )}
+                    >
+                      <span className="block text-base text-ink truncate">
+                        {typed || 'Signature'}
+                      </span>
+                      <span className="block text-[10px] text-ink-faint mt-1 font-sans">
+                        {font.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
-            {activeTab === 'type' && (
-              <div className="space-y-6">
-                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Type your name</label>
-                    <input
-                        type="text"
-                        value={typedSignature}
-                        onChange={(e) => setTypedSignature(e.target.value)}
-                        placeholder="John Doe"
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                 </div>
-                 <div>
-                     <label className="block text-sm font-medium text-slate-700 mb-2">Choose font style</label>
-                     <div className="grid grid-cols-2 gap-3">
-                         {['font-serif', 'font-sans', 'font-mono'].map(font => (
-                             <div 
-                                key={font}
-                                onClick={() => setFontFamily(font)}
-                                className={`border rounded-lg p-4 cursor-pointer text-center ${font} ${fontFamily === font ? 'border-indigo-600 ring-1 ring-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:border-slate-300'}`}
-                             >
-                                 <span className="text-lg">{typedSignature || 'Signature'}</span>
-                             </div>
-                         ))}
-                     </div>
-                 </div>
-              </div>
-            )}
-
-            {activeTab === 'upload' && (
-               <div className="h-[200px] border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex items-center justify-center flex-col text-center p-6">
-                  <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 text-slate-400">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-slate-900">Click to upload or drag & drop</p>
-                  <p className="text-xs text-slate-500 mt-1">SVG, PNG, JPG or GIF (max. 800x400px)</p>
-                  <input type="file" className="hidden" />
-               </div>
-            )}
+            <p className="text-[11px] text-ink-soft leading-relaxed">
+              By signing you confirm you have read and agree to the terms of this agreement. Your
+              name, signature and the date are recorded with the contract.
+            </p>
           </div>
 
-          <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+          <div className="p-4 border-t border-line bg-surface-2 flex justify-end gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-bold text-ink-soft hover:text-ink transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 text-sm font-bold text-white bg-orange rounded-lg hover:bg-orange-deep transition-colors flex items-center gap-2"
             >
               <Check size={16} />
-              Sign & Accept
+              Sign &amp; Accept
             </button>
           </div>
         </motion.div>

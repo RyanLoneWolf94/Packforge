@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -5,16 +6,18 @@ import {
   FileSignature,
   FileText,
   FolderArchive,
+  PenLine,
   Receipt,
   ScrollText,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, Card, EmptyState, PageHeader, StatusPill } from '@/src/components/ui';
+import { Button, Card, EmptyState, Modal, PageHeader, StatusPill } from '@/src/components/ui';
+import SignatureModal, { SignaturePreview } from '@/src/components/SignatureModal';
 import { cn, downloadFile, formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
 import { quoteTotal } from '@/src/lib/finance';
 import { downloadInvoicePdf, downloadQuotePdf } from '@/src/lib/pdf';
 import { useStudio } from '@/src/store/StudioStore';
-import type { InvoiceStatus, QuoteStatus } from '@/src/types';
+import type { Contract, InvoiceStatus, QuoteStatus } from '@/src/types';
 import { usePortalClient } from './usePortalClient';
 
 /* Client-facing views of the studio's paperwork. All read-only. */
@@ -311,15 +314,27 @@ export function PortalFiles() {
 
 export function PortalContracts() {
   const client = usePortalClient();
-  const { contracts, projectFor } = useStudio();
+  const { contracts, projectFor, update } = useStudio();
+
+  // The contract being read, and whether the signature pad is open over it.
+  const [reviewing, setReviewing] = useState<Contract | null>(null);
+  const [signingOpen, setSigningOpen] = useState(false);
 
   const rows = contracts
     .filter((c) => c.clientId === client.id)
     .sort((a, b) => b.expires.localeCompare(a.expires));
 
+  // Keep the open contract in sync after signing, so the modal reflects it.
+  const openContract = reviewing ? (rows.find((c) => c.id === reviewing.id) ?? reviewing) : null;
+  const awaitingSignature =
+    openContract?.status === 'pending' || openContract?.status === 'draft';
+
   return (
     <div>
-      <PageHeader title="Contracts" subtitle="Agreements covering your engagement." />
+      <PageHeader
+        title="Contracts"
+        subtitle="Agreements covering your engagement. Open one to read the full terms."
+      />
 
       {rows.length === 0 ? (
         <Card>
@@ -363,17 +378,106 @@ export function PortalContracts() {
                     </p>
                   </div>
                 </div>
-                <StatusPill
-                  tone={contract.status === 'signed' ? 'positive' : 'warning'}
-                  className="shrink-0"
-                >
-                  {contract.status}
-                </StatusPill>
+                <div className="flex items-center gap-3 shrink-0">
+                  <StatusPill tone={contract.status === 'signed' ? 'positive' : 'warning'}>
+                    {contract.status}
+                  </StatusPill>
+                  <Button
+                    variant={
+                      contract.status === 'pending' || contract.status === 'draft'
+                        ? 'primary'
+                        : 'secondary'
+                    }
+                    size="sm"
+                    icon={FileText}
+                    onClick={() => {
+                      setReviewing(contract);
+                      setSigningOpen(false);
+                    }}
+                  >
+                    {contract.status === 'pending' || contract.status === 'draft'
+                      ? 'Review & sign'
+                      : 'Review'}
+                  </Button>
+                </div>
               </div>
             );
           })}
         </Card>
       )}
+
+      {/* Full agreement, readable before signing. */}
+      <Modal
+        open={Boolean(openContract)}
+        onClose={() => setReviewing(null)}
+        title={openContract?.title ?? 'Contract'}
+        subtitle={
+          openContract
+            ? `${formatCurrency(openContract.amount)} · valid until ${formatDate(openContract.expires)}`
+            : undefined
+        }
+        width="max-w-2xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReviewing(null)}>
+              Close
+            </Button>
+            {awaitingSignature ? (
+              <Button icon={PenLine} onClick={() => setSigningOpen(true)}>
+                Sign this agreement
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {openContract ? (
+          <div className="space-y-5">
+            {openContract.body ? (
+              <div className="bg-surface-2 border border-line rounded-[10px] p-5 max-h-[45vh] overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-ink-soft">
+                  {openContract.body}
+                </pre>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-soft">
+                The written terms for this agreement haven't been published yet. Please contact
+                your studio lead before signing.
+              </p>
+            )}
+
+            {openContract.status === 'signed' ? (
+              <div className="border border-positive/40 bg-positive-dim rounded-[10px] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-positive">
+                  Signed
+                </p>
+                <div className="mt-2 flex items-end gap-4 flex-wrap">
+                  <SignaturePreview signature={openContract.signature} />
+                  <p className="text-[12.5px] text-ink-soft">
+                    {openContract.signedBy}
+                    {openContract.signedAt ? ` · ${formatDate(openContract.signedAt)}` : ''}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
+
+      <SignatureModal
+        isOpen={signingOpen && Boolean(openContract)}
+        onClose={() => setSigningOpen(false)}
+        contractTitle={openContract?.title ?? ''}
+        defaultSigner={client.contactName}
+        onSign={({ signature, signerName }) => {
+          if (!openContract) return;
+          update('contracts', openContract.id, {
+            status: 'signed',
+            signedBy: signerName,
+            signature,
+          });
+          toast.success('Contract signed — thank you');
+        }}
+      />
     </div>
   );
 }

@@ -34,7 +34,11 @@ const noop = () => undefined;
 export function PortalProvider({ children }: { children: ReactNode }) {
   const { token } = useParams();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  // Quotes and contracts are the two things a client can act on, so they are
+  // held in state to update optimistically; everything else is read straight
+  // off the snapshot.
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +57,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         const snap = data as Snapshot;
         setSnapshot(snap);
         setQuotes(snap.quotes ?? []);
+        setContracts(snap.contracts ?? []);
       }
       setLoading(false);
     });
@@ -72,12 +77,14 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       projects,
       invoices: snapshot?.invoices ?? [],
       quotes,
-      contracts: snapshot?.contracts ?? [],
+      contracts,
       files: snapshot?.files ?? [],
       expenses: [],
       leads: [],
       team: [],
       timeEntries: [],
+      // Studio-internal working tasks are never exposed to clients.
+      projectTasks: [],
       emailTemplates: [],
       planTemplates: [],
       campaigns: [],
@@ -87,22 +94,53 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       loading,
       refresh: async () => undefined,
 
-      // The one permitted portal write: respond to a quote.
+      /**
+       * The only writes the portal permits: a client responding to a quote, and
+       * signing a contract they've reviewed. Both go through scoped RPCs that
+       * re-check the token server-side; anything else is ignored. Pages call
+       * this with the same `update(collection, id, patch)` shape the admin app
+       * uses, so they need no portal-specific code.
+       */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       update: (key: string, id: string, patch: any) => {
-        if (key !== 'quotes' || (patch.status !== 'accepted' && patch.status !== 'rejected')) {
+        if (key === 'quotes') {
+          if (patch.status !== 'accepted' && patch.status !== 'rejected') return;
+          setQuotes((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+          supabase
+            .rpc('portal_respond_quote', {
+              p_token: token,
+              p_quote_id: id,
+              p_status: patch.status,
+            })
+            .then(({ error }) => {
+              if (error) console.error('portal_respond_quote failed:', error.message);
+            });
           return;
         }
-        setQuotes((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
-        supabase
-          .rpc('portal_respond_quote', {
-            p_token: token,
-            p_quote_id: id,
-            p_status: patch.status,
-          })
-          .then(({ error }) => {
-            if (error) console.error('portal_respond_quote failed:', error.message);
-          });
+
+        if (key === 'contracts' && patch.status === 'signed') {
+          const signer = String(patch.signedBy ?? '').trim();
+          if (!signer) return;
+          const signature = patch.signature ?? null;
+          const signedAt = new Date().toISOString().slice(0, 10);
+          setContracts((prev) =>
+            prev.map((c) =>
+              c.id === id
+                ? { ...c, status: 'signed', signedBy: signer, signedAt, signature }
+                : c,
+            ),
+          );
+          supabase
+            .rpc('portal_sign_contract', {
+              p_token: token,
+              p_contract_id: id,
+              p_signer: signer,
+              p_signature: signature,
+            })
+            .then(({ error }) => {
+              if (error) console.error('portal_sign_contract failed:', error.message);
+            });
+        }
       },
 
       // Lookups over the snapshot.

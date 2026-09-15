@@ -24,7 +24,7 @@ export default function PortalOverview() {
   const client = usePortalClient();
   const { projectsForClient, invoices, quotes, contracts, files } = useStudio();
 
-  const projects = projectsForClient(client.id).filter((p) => !p.archived);
+  const projects = projectsForClient(client.id).filter((p) => p.status !== 'archived');
   const base = `/portal/${client.portalToken}`;
 
   const myInvoices = invoices.filter((i) => i.clientId === client.id && i.status !== 'draft');

@@ -373,6 +373,7 @@ const contracts: Contract[] = [
     signedBy: 'Mavis Chijokwe',
     signedAt: '2026-07-06',
     autoRemind: true,
+    body: '',
   },
   {
     id: 'ct-2',
@@ -385,6 +386,7 @@ const contracts: Contract[] = [
     signedBy: 'Nomsa Dube',
     signedAt: '2026-06-01',
     autoRemind: true,
+    body: '',
   },
   {
     id: 'ct-3',
@@ -395,6 +397,7 @@ const contracts: Contract[] = [
     expires: '2026-11-30',
     status: 'pending',
     autoRemind: false,
+    body: '',
   },
   {
     id: 'ct-4',
@@ -407,6 +410,7 @@ const contracts: Contract[] = [
     signedBy: 'Tendai Moyo',
     signedAt: '2026-05-20',
     autoRemind: false,
+    body: '',
   },
 ];
 

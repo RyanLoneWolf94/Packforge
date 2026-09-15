@@ -20,7 +20,7 @@ import { usePortalClient } from './usePortalClient';
 export default function PortalProgress() {
   const client = usePortalClient();
   const { projectsForClient } = useStudio();
-  const projects = projectsForClient(client.id).filter((p) => !p.archived);
+  const projects = projectsForClient(client.id).filter((p) => p.status !== 'archived');
 
   if (projects.length === 0) {
     return (

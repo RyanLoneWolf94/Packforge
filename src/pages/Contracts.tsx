@@ -22,6 +22,7 @@ import {
   Select,
   StatCard,
   StatusPill,
+  Textarea,
 } from '@/src/components/ui';
 import SignatureModal from '@/src/components/SignatureModal';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
@@ -38,6 +39,7 @@ type FormState = {
   amount: string;
   expires: string;
   status: ContractStatus;
+  body: string;
 };
 
 const blankForm = (): FormState => ({
@@ -47,6 +49,7 @@ const blankForm = (): FormState => ({
   amount: '',
   expires: '',
   status: 'draft',
+  body: '',
 });
 
 /** Renewal urgency, so an expiring agreement can't quietly lapse. */
@@ -83,6 +86,7 @@ export default function Contracts() {
       amount: String(contract.amount),
       expires: contract.expires,
       status: contract.status,
+      body: contract.body ?? '',
     });
     setIsOpen(true);
   };
@@ -100,6 +104,7 @@ export default function Contracts() {
       amount: Number(form.amount) || 0,
       expires: form.expires,
       status: form.status,
+      body: form.body,
       autoRemind: editingId
         ? (contracts.find((c) => c.id === editingId)?.autoRemind ?? false)
         : false,
@@ -284,13 +289,14 @@ export default function Contracts() {
         isOpen={Boolean(signing)}
         onClose={() => setSigning(null)}
         contractTitle={signing?.title ?? ''}
-        onSign={() => {
+        defaultSigner={signing ? (clientFor(signing)?.contactName ?? '') : ''}
+        onSign={({ signature, signerName }) => {
           if (!signing) return;
-          const client = clientFor(signing);
           update('contracts', signing.id, {
             status: 'signed',
-            signedBy: client?.contactName ?? 'Client',
+            signedBy: signerName,
             signedAt: new Date().toISOString().slice(0, 10),
+            signature,
           });
           toast.success('Contract signed');
         }}
@@ -377,6 +383,18 @@ export default function Contracts() {
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field
+            label="Terms"
+            hint="Shown to the client in their portal for review before signing"
+          >
+            <Textarea
+              rows={10}
+              value={form.body}
+              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              className="leading-relaxed"
+              placeholder={'1. SCOPE OF WORK\nWhat the studio will deliver…'}
+            />
           </Field>
         </form>
       </Modal>
