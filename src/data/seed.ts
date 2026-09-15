@@ -8,7 +8,6 @@ import type {
   Invoice,
   Lead,
   Newsletter,
-  PlanTemplate,
   Project,
   Quote,
   StudioSettings,
@@ -693,30 +692,6 @@ const emailTemplates: EmailTemplate[] = [
   },
 ];
 
-const planTemplates: PlanTemplate[] = [
-  {
-    id: 'pt-wolf',
-    title: 'Wolf Package — 4 Week',
-    description: 'Standard brand foundation delivery plan.',
-    phases: [
-      { id: 'pp-1', name: 'Discovery & Strategy', days: 7, tone: 'purple' },
-      { id: 'pp-2', name: 'Visual Identity', days: 7, tone: 'orange' },
-      { id: 'pp-3', name: 'Corporate & Digital', days: 7, tone: 'gold' },
-      { id: 'pp-4', name: 'Packaging & Handover', days: 7, tone: 'positive' },
-    ],
-  },
-  {
-    id: 'pt-web',
-    title: 'Website Build Sprint',
-    description: 'Design-to-launch plan for a marketing site.',
-    phases: [
-      { id: 'pp-5', name: 'Wireframes', days: 5, tone: 'purple' },
-      { id: 'pp-6', name: 'Design System', days: 7, tone: 'orange' },
-      { id: 'pp-7', name: 'Build & CMS', days: 14, tone: 'positive' },
-      { id: 'pp-8', name: 'QA & Launch', days: 4, tone: 'gold' },
-    ],
-  },
-];
 
 const campaigns: Campaign[] = [
   {
@@ -784,7 +759,6 @@ export const SEED = {
   team,
   timeEntries,
   emailTemplates,
-  planTemplates,
   campaigns,
   newsletters,
   settings,

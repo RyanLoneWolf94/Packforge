@@ -31,7 +31,7 @@ const TimeTracking = lazy(() => import("./pages/TimeTracking"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Quotations = lazy(() => import("./pages/Quotations"));
-const Timelines = lazy(() => import("./pages/Timelines"));
+const Blueprints = lazy(() => import("./pages/Blueprints"));
 const Overview = lazy(() => import("./pages/Overview"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const Teams = lazy(() => import("./pages/Teams"));
@@ -108,7 +108,8 @@ export default function App() {
                           <Route path="/leads" element={<Leads />} />
                           <Route path="/quotations" element={<Quotations />} />
                           <Route path="/contracts" element={<Contracts />} />
-                          <Route path="/timelines" element={<Timelines />} />
+                          <Route path="/blueprints" element={<Blueprints />} />
+                          <Route path="/timelines" element={<Navigate to="/admin/blueprints" replace />} />
                           <Route path="/time" element={<TimeTracking />} />
                           <Route path="/overview" element={<Overview />} />
                           <Route path="/expenses" element={<Expenses />} />

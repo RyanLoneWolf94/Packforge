@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useEffect, type ComponentType, type ReactNode } from 'react';
 import { cn } from '@/src/lib/utils';
@@ -115,15 +116,18 @@ export function StatCard({
   label,
   tone = 'neutral',
   hint,
+  to,
 }: {
   icon: ComponentType<{ size?: number | string; strokeWidth?: number }>;
   value: ReactNode;
   label: string;
   tone?: keyof typeof STAT_TONES;
   hint?: string;
+  /** Makes the whole tile a link — a stat that leads somewhere should say so on hover. */
+  to?: string;
 }) {
-  return (
-    <Card className="p-6 flex items-center gap-5">
+  const body = (
+    <>
       <div
         className={cn(
           'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
@@ -139,10 +143,28 @@ export function StatCard({
         <p className="text-[10px] font-bold text-ink-faint uppercase tracking-widest whitespace-nowrap">
           {label}
         </p>
-        {hint ? <p className="text-[11px] text-ink-soft mt-1">{hint}</p> : null}
+        {hint ? (
+          <p className={cn('text-[11px] mt-1', to ? 'text-orange font-semibold' : 'text-ink-soft')}>
+            {hint}
+            {to ? ' →' : ''}
+          </p>
+        ) : null}
       </div>
-    </Card>
+    </>
   );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="block bg-surface border border-line rounded-[14px] shadow-sm p-6 flex items-center gap-5 transition-all hover:shadow-md hover:border-orange/60 hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-orange/30"
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return <Card className="p-6 flex items-center gap-5">{body}</Card>;
 }
 
 /* ----------------------------- StatusPill ----------------------------- */

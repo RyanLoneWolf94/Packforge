@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   CheckCircle2,
   Download,
   Edit2,
+  LayoutTemplate,
   Plus,
+  Save,
   ScrollText,
   Send,
   Trash2,
-  X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Button,
@@ -24,12 +25,24 @@ import {
   StatCard,
   StatusPill,
 } from '@/src/components/ui';
-import { BRANDING_PACKAGES, type TierId } from '@/src/brand';
-import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
+import {
+  MilestoneEditor,
+  cloneMilestones,
+  milestonesTotal,
+  newMilestone,
+} from '@/src/components/MilestoneEditor';
+import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { quoteTotal } from '@/src/lib/finance';
 import { downloadQuotePdf } from '@/src/lib/pdf';
-import { useStudio } from '@/src/store/StudioStore';
-import type { Quote, QuoteMilestone, QuoteStatus } from '@/src/types';
+import { freshPhases, useStudio } from '@/src/store/StudioStore';
+import {
+  BLUEPRINT_CATEGORIES,
+  type Blueprint,
+  type Quote,
+  type QuoteMilestone,
+  type QuoteStatus,
+  type TrackerPhase,
+} from '@/src/types';
 
 const STATUSES: QuoteStatus[] = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
 
@@ -41,9 +54,6 @@ const STATUS_TONE: Record<QuoteStatus, 'positive' | 'danger' | 'warning' | 'neut
   draft: 'neutral',
 };
 
-let seq = 0;
-const uid = (p: string) => `${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
-
 type FormState = {
   number: string;
   title: string;
@@ -52,6 +62,7 @@ type FormState = {
   timelineDays: string;
   status: QuoteStatus;
   milestones: QuoteMilestone[];
+  blueprintId: string;
 };
 
 const blankForm = (count: number): FormState => ({
@@ -61,12 +72,32 @@ const blankForm = (count: number): FormState => ({
   validUntil: '',
   timelineDays: '28',
   status: 'draft',
-  milestones: [{ id: uid('qm'), title: 'Phase 1', tasks: [{ id: uid('qt'), title: '', price: 0 }] }],
+  milestones: [newMilestone()],
+  blueprintId: '',
 });
 
+/**
+ * A quote with no blueprint still converts into a real tracker: each milestone
+ * becomes a phase and its line items the deliverables. That's what makes a
+ * from-scratch quote for any business line trackable without extra setup.
+ */
+function phasesFromMilestones(milestones: QuoteMilestone[]): TrackerPhase[] {
+  return milestones.map((m) => ({
+    id: m.id,
+    name: m.title || 'Phase',
+    budget: m.tasks.reduce((s, t) => s + (Number(t.price) || 0), 0),
+    link: '',
+    deliverables: m.tasks
+      .filter((t) => t.title.trim())
+      .map((t) => ({ id: t.id, title: t.title.trim(), description: '', done: false })),
+  }));
+}
+
 export default function Quotations() {
-  const { quotes, clients, settings, clientFor, add, update, remove, createProject } = useStudio();
+  const { quotes, clients, blueprints, settings, clientFor, add, update, remove, createProject } =
+    useStudio();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -89,33 +120,60 @@ export default function Quotations() {
       timelineDays: String(quote.timelineDays),
       status: quote.status,
       milestones: quote.milestones,
+      blueprintId: quote.blueprintId ?? '',
     });
     setIsOpen(true);
   };
 
-  /** Seed the milestone breakdown from a standard package rather than typing it out. */
-  const applyPackage = (tier: TierId) => {
-    const pkg = BRANDING_PACKAGES.find((p) => p.id === tier)!;
+  /** Seed the quote from a blueprint: title, breakdown and duration, with fresh ids. */
+  const applyBlueprint = (bp: Blueprint) => {
     setForm((prev) => ({
       ...prev,
-      title: prev.title || `${pkg.name} Engagement`,
-      milestones: [
-        {
-          id: uid('qm'),
-          title: pkg.name,
-          tasks: pkg.includes.slice(0, 4).map((line, idx, arr) => ({
-            id: uid('qt'),
-            title: line,
-            // Spread the package price evenly, remainder on the last line.
-            price:
-              idx === arr.length - 1
-                ? pkg.price - Math.floor(pkg.price / arr.length) * (arr.length - 1)
-                : Math.floor(pkg.price / arr.length),
-          })),
-        },
-      ],
+      title: prev.title || `${bp.title} Engagement`,
+      milestones: cloneMilestones(bp.milestones),
+      timelineDays: String(bp.timelineDays),
+      blueprintId: bp.id,
     }));
-    toast.success(`${pkg.name} breakdown applied`);
+    toast.success(`${bp.title} applied`);
+  };
+
+  // "Quote from this" on the Blueprints page lands here with ?blueprint=ID.
+  useEffect(() => {
+    const id = searchParams.get('blueprint');
+    if (!id) return;
+    const bp = blueprints.find((b) => b.id === id);
+    setSearchParams({}, { replace: true });
+    if (!bp) return;
+    setEditingId(null);
+    setForm({ ...blankForm(quotes.length), blueprintId: bp.id });
+    setIsOpen(true);
+    applyBlueprint(bp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, blueprints]);
+
+  /* Save the current breakdown back to the library for next time. */
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
+  const [saveAs, setSaveAs] = useState({ title: '', category: 'Branding' });
+  const saveAsBlueprint = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saveAs.title.trim()) {
+      toast.error('Name the blueprint');
+      return;
+    }
+    const milestones = cloneMilestones(form.milestones.filter((m) => m.tasks.some((t) => t.title.trim())));
+    const created = add('blueprints', {
+      title: saveAs.title.trim(),
+      category: saveAs.category.trim() || 'Other',
+      description: '',
+      milestones,
+      phases: phasesFromMilestones(milestones),
+      timeline: [],
+      timelineDays: Number(form.timelineDays) || 28,
+      createdAt: new Date().toISOString().slice(0, 10),
+    });
+    setForm((prev) => ({ ...prev, blueprintId: created.id }));
+    setSaveAsOpen(false);
+    toast.success(`Saved as blueprint — refine its workflow under Blueprints`);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -132,6 +190,7 @@ export default function Quotations() {
       timelineDays: Number(form.timelineDays) || 0,
       status: form.status,
       milestones: form.milestones.filter((m) => m.tasks.some((t) => t.title.trim())),
+      blueprintId: form.blueprintId || undefined,
     };
     if (editingId) {
       update('quotes', editingId, payload);
@@ -145,11 +204,14 @@ export default function Quotations() {
 
   /** Turn an accepted quote into a tracked project without re-keying anything. */
   const convert = (quote: Quote) => {
+    const bp = quote.blueprintId ? blueprints.find((b) => b.id === quote.blueprintId) : undefined;
     const project = createProject({
       name: quote.title,
       clientId: quote.clientId,
-      tier: 'wolf',
-      packageName: 'Custom (from quote)',
+      packageName: bp?.title ?? 'Custom (from quote)',
+      blueprint: bp,
+      // No blueprint workflow to lean on? Build the tracker from the quote itself.
+      ...(bp && bp.phases.length ? {} : { phases: freshPhases(phasesFromMilestones(quote.milestones)) }),
       startDate: new Date().toISOString().slice(0, 10),
       targetDelivery: new Date(Date.now() + quote.timelineDays * 86_400_000)
         .toISOString()
@@ -364,19 +426,41 @@ export default function Quotations() {
             />
           </Field>
 
-          <Field label="Start from a package" hint="Optional — pre-fills the breakdown">
-            <div className="grid grid-cols-3 gap-2">
-              {BRANDING_PACKAGES.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => applyPackage(p.id)}
-                  className="rounded-lg border-2 border-line p-2.5 text-left hover:border-orange transition-colors"
-                >
-                  <div className="font-bold text-xs text-ink">{p.name}</div>
-                  <div className="text-[11px] text-ink-soft">{formatCurrency(p.price)}</div>
-                </button>
-              ))}
+          <Field
+            label="Start from a blueprint"
+            hint="Optional — pre-fills the breakdown and duration. Or build from scratch below."
+          >
+            <div className="flex gap-2">
+              <Select
+                value={form.blueprintId}
+                onChange={(e) => {
+                  const bp = blueprints.find((b) => b.id === e.target.value);
+                  if (bp) applyBlueprint(bp);
+                  else setForm({ ...form, blueprintId: '' });
+                }}
+              >
+                <option value="">From scratch</option>
+                {[...new Set(blueprints.map((b) => b.category))].sort().map((cat) => (
+                  <optgroup key={cat} label={cat}>
+                    {blueprints
+                      .filter((b) => b.category === cat)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.title} · {formatCurrency(milestonesTotal(b.milestones))}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </Select>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={LayoutTemplate}
+                onClick={() => navigate('/admin/blueprints')}
+                title="Manage blueprints"
+              >
+                Library
+              </Button>
             </div>
           </Field>
 
@@ -410,132 +494,66 @@ export default function Quotations() {
             </Field>
           </div>
 
-          {/* Milestone / line-item editor */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-ink">Breakdown</span>
-              <span className="text-sm font-extrabold text-purple">
-                {formatCurrency(
-                  form.milestones.reduce(
-                    (s, m) => s + m.tasks.reduce((ts, t) => ts + (Number(t.price) || 0), 0),
-                    0,
-                  ),
-                )}
-              </span>
-            </div>
+          <MilestoneEditor
+            value={form.milestones}
+            onChange={(milestones) => setForm({ ...form, milestones })}
+          />
 
-            {form.milestones.map((milestone, mIdx) => (
-              <div key={milestone.id} className="bg-surface-2 rounded-[10px] p-3.5 space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    value={milestone.title}
-                    onChange={(e) => {
-                      const next = [...form.milestones];
-                      next[mIdx] = { ...milestone, title: e.target.value };
-                      setForm({ ...form, milestones: next });
-                    }}
-                    placeholder="Milestone title"
-                    className="font-bold"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        milestones: form.milestones.filter((m) => m.id !== milestone.id),
-                      })
-                    }
-                    className="p-2 text-ink-faint hover:text-red shrink-0"
-                    aria-label="Remove milestone"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {milestone.tasks.map((task, tIdx) => (
-                  <div key={task.id} className="flex gap-2">
-                    <Input
-                      value={task.title}
-                      onChange={(e) => {
-                        const next = [...form.milestones];
-                        const tasks = [...milestone.tasks];
-                        tasks[tIdx] = { ...task, title: e.target.value };
-                        next[mIdx] = { ...milestone, tasks };
-                        setForm({ ...form, milestones: next });
-                      }}
-                      placeholder="Line item"
-                    />
-                    <Input
-                      type="number"
-                      min="0"
-                      value={task.price}
-                      onChange={(e) => {
-                        const next = [...form.milestones];
-                        const tasks = [...milestone.tasks];
-                        tasks[tIdx] = { ...task, price: Number(e.target.value) || 0 };
-                        next[mIdx] = { ...milestone, tasks };
-                        setForm({ ...form, milestones: next });
-                      }}
-                      className="w-28 shrink-0"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = [...form.milestones];
-                        next[mIdx] = {
-                          ...milestone,
-                          tasks: milestone.tasks.filter((t) => t.id !== task.id),
-                        };
-                        setForm({ ...form, milestones: next });
-                      }}
-                      className="p-2 text-ink-faint hover:text-red shrink-0"
-                      aria-label="Remove line"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = [...form.milestones];
-                    next[mIdx] = {
-                      ...milestone,
-                      tasks: [...milestone.tasks, { id: uid('qt'), title: '', price: 0 }],
-                    };
-                    setForm({ ...form, milestones: next });
-                  }}
-                  className="text-[11px] font-bold text-ink-faint hover:text-orange flex items-center gap-1"
-                >
-                  <Plus size={12} /> Add line item
-                </button>
-              </div>
-            ))}
-
+          {/* From-scratch breakdowns are worth keeping. */}
+          {form.milestones.some((m) => m.tasks.some((t) => t.title.trim())) ? (
             <button
               type="button"
-              onClick={() =>
-                setForm({
-                  ...form,
-                  milestones: [
-                    ...form.milestones,
-                    {
-                      id: uid('qm'),
-                      title: `Phase ${form.milestones.length + 1}`,
-                      tasks: [{ id: uid('qt'), title: '', price: 0 }],
-                    },
-                  ],
-                })
-              }
-              className={cn(
-                'w-full py-2 border border-dashed border-line rounded-lg',
-                'text-xs font-bold text-ink-soft hover:border-orange hover:text-orange transition-colors',
-              )}
+              onClick={() => {
+                setSaveAs({ title: form.title.trim(), category: 'Branding' });
+                setSaveAsOpen(true);
+              }}
+              className="text-xs font-bold text-purple hover:text-orange flex items-center gap-1.5"
             >
-              + Add milestone
+              <Save size={13} /> Save this breakdown as a blueprint for next time
             </button>
-          </div>
+          ) : null}
+        </form>
+      </Modal>
+
+      <Modal
+        open={saveAsOpen}
+        onClose={() => setSaveAsOpen(false)}
+        title="Save as blueprint"
+        subtitle="The breakdown becomes reusable; refine its workflow and timeline under Blueprints"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setSaveAsOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="save-as-form" icon={Save}>
+              Save Blueprint
+            </Button>
+          </>
+        }
+      >
+        <form id="save-as-form" onSubmit={saveAsBlueprint} className="space-y-4">
+          <Field label="Blueprint name">
+            <Input
+              autoFocus
+              value={saveAs.title}
+              onChange={(e) => setSaveAs({ ...saveAs, title: e.target.value })}
+              placeholder="e.g. Podcast Launch Package"
+            />
+          </Field>
+          <Field label="Business line">
+            <Input
+              list="save-as-categories"
+              value={saveAs.category}
+              onChange={(e) => setSaveAs({ ...saveAs, category: e.target.value })}
+            />
+            <datalist id="save-as-categories">
+              {[...new Set([...BLUEPRINT_CATEGORIES, ...blueprints.map((b) => b.category)])].map(
+                (c) => (
+                  <option key={c} value={c} />
+                ),
+              )}
+            </datalist>
+          </Field>
         </form>
       </Modal>
 

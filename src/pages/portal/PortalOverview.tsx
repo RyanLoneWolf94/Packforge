@@ -60,26 +60,32 @@ export default function PortalOverview() {
           tone="purple"
           value={projects.length}
           label="Active Projects"
-          hint={projects[0]?.packageName}
+          hint={projects[0]?.packageName ?? 'See progress'}
+          to={`${base}/progress`}
         />
         <StatCard
           icon={CalendarDays}
           tone="orange"
           value={formatCurrency(engagementValue)}
           label="Engagement Value"
+          hint="Phase breakdown"
+          to={`${base}/progress`}
         />
         <StatCard
           icon={Receipt}
           tone={outstanding > 0 ? 'gold' : 'neutral'}
           value={formatCurrency(outstanding)}
           label="Outstanding"
-          hint={outstanding > 0 ? 'See Invoices' : 'Nothing due'}
+          hint={outstanding > 0 ? 'See invoices' : 'Nothing due'}
+          to={`${base}/invoices`}
         />
         <StatCard
           icon={Download}
           tone="neutral"
           value={sharedFiles.length}
           label="Files Shared"
+          hint={sharedFiles.length > 0 ? 'Open files' : 'Nothing shared yet'}
+          to={`${base}/files`}
         />
       </section>
 

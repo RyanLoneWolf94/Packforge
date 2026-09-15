@@ -9,8 +9,6 @@ import {
   type ReactNode,
 } from 'react';
 import { toast } from 'sonner';
-import type { TierId } from '../brand';
-import { phasesForTier, timelineForTier } from '../data/phaseTemplates';
 import { SEED } from '../data/seed';
 import { supabase } from '../lib/supabase';
 import type {
@@ -24,13 +22,15 @@ import type {
   Invoice,
   Lead,
   Newsletter,
-  PlanTemplate,
+  Blueprint,
   Project,
   ProjectTask,
   Quote,
   StudioSettings,
   TeamMember,
   TimeEntry,
+  TimelineWeek,
+  TrackerPhase,
 } from '../types';
 
 /**
@@ -62,7 +62,7 @@ interface Collections {
   timeEntries: TimeEntry[];
   projectTasks: ProjectTask[];
   emailTemplates: EmailTemplate[];
-  planTemplates: PlanTemplate[];
+  blueprints: Blueprint[];
   campaigns: Campaign[];
   newsletters: Newsletter[];
 }
@@ -92,7 +92,7 @@ const COLLECTION_KEYS: CollectionKey[] = [
   'timeEntries',
   'projectTasks',
   'emailTemplates',
-  'planTemplates',
+  'blueprints',
   'campaigns',
   'newsletters',
 ];
@@ -118,11 +118,15 @@ interface StudioContextValue extends StudioState {
   createProject: (input: {
     name: string;
     clientId: string;
-    tier: TierId;
     packageName: string;
     startDate: string;
     targetDelivery: string;
     summary: string;
+    /** Seed the workflow and timeline from a blueprint. */
+    blueprint?: Blueprint;
+    /** …or from explicit phases/timeline (e.g. derived from a quote). Wins over `blueprint`. */
+    phases?: TrackerPhase[];
+    timeline?: TimelineWeek[];
   }) => Project;
   deleteProject: (id: string) => void;
 
@@ -176,6 +180,21 @@ function forUpdate(patch: object): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
+/** Deep-copy phases with new ids and nothing ticked — a clean slate from a template. */
+export function freshPhases(phases: TrackerPhase[]): TrackerPhase[] {
+  return phases.map((ph) => ({
+    ...ph,
+    id: uid('ph'),
+    link: '',
+    deliverables: ph.deliverables.map((d) => ({ ...d, id: uid('dl'), done: false })),
+  }));
+}
+
+/** Deep-copy timeline stages with new ids and nothing complete. */
+export function freshTimeline(timeline: TimelineWeek[]): TimelineWeek[] {
+  return timeline.map((w) => ({ ...w, id: uid('wk'), done: false }));
+}
+
 /** Lowercase, hyphenated, URL-safe token for portal share links. */
 function slugify(value: string) {
   return (
@@ -199,7 +218,7 @@ const EMPTY_STATE: StudioState = {
   timeEntries: [],
   projectTasks: [],
   emailTemplates: [],
-  planTemplates: [],
+  blueprints: [],
   campaigns: [],
   newsletters: [],
   settings: SEED.settings,
@@ -373,14 +392,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             .slice(2, 7)
             .replace('-', '')}`,
           status: 'planning',
-          packageTier: input.tier,
+          packageTier: 'custom',
           packageName: input.packageName,
           startDate: input.startDate,
           targetDelivery: input.targetDelivery,
           summary: input.summary,
-          phases: phasesForTier(input.tier),
-          timeline: timelineForTier(input.tier),
+          // Blueprint content is copied with fresh ids so editing the project
+          // never reaches back into the template (and vice versa).
+          phases: freshPhases(input.phases ?? input.blueprint?.phases ?? []),
+          timeline: freshTimeline(input.timeline ?? input.blueprint?.timeline ?? []),
           actionItems: [],
+          blueprintId: input.blueprint?.id,
         };
         setState((prev) => ({ ...prev, projects: [project, ...prev.projects] }));
         persist(

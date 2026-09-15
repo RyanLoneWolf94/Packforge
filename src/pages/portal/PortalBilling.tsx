@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CheckCircle2,
+  ChevronDown,
   Clock,
   Download,
+  GaugeCircle,
   FileSignature,
   FileText,
   FolderArchive,
@@ -130,7 +133,10 @@ const QUOTE_TONE: Record<QuoteStatus, 'positive' | 'danger' | 'warning' | 'neutr
 
 export function PortalQuotes() {
   const client = usePortalClient();
-  const { quotes, update, settings } = useStudio();
+  const { quotes, update, settings, projectFor } = useStudio();
+  // Milestones start collapsed to the phase totals; tap one to see its line items.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const rows = quotes
     .filter((q) => q.clientId === client.id && q.status !== 'draft')
@@ -178,29 +184,49 @@ export function PortalQuotes() {
                 </div>
 
                 <div className="space-y-3">
-                  {quote.milestones.map((milestone) => (
-                    <div key={milestone.id} className="bg-surface-2 rounded-[10px] p-4">
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <h4 className="font-bold text-sm text-ink">{milestone.title}</h4>
-                        <span className="text-sm font-bold text-ink-soft">
-                          {formatCurrency(
-                            milestone.tasks.reduce((s, t) => s + t.price, 0),
-                          )}
-                        </span>
+                  {quote.milestones.map((milestone) => {
+                    const open = expanded[milestone.id] ?? false;
+                    return (
+                      <div key={milestone.id} className="bg-surface-2 rounded-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => toggle(milestone.id)}
+                          aria-expanded={open}
+                          className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-line/40 rounded-[10px] transition-colors"
+                        >
+                          <span className="flex items-center gap-2 font-bold text-sm text-ink">
+                            <ChevronDown
+                              size={15}
+                              className={cn(
+                                'text-ink-faint transition-transform',
+                                open && 'rotate-180',
+                              )}
+                            />
+                            {milestone.title}
+                            <span className="text-[11px] font-semibold text-ink-faint">
+                              {milestone.tasks.length} item{milestone.tasks.length === 1 ? '' : 's'}
+                            </span>
+                          </span>
+                          <span className="text-sm font-bold text-ink-soft">
+                            {formatCurrency(milestone.tasks.reduce((s, t) => s + t.price, 0))}
+                          </span>
+                        </button>
+                        {open ? (
+                          <ul className="space-y-1 px-4 pb-4 -mt-1">
+                            {milestone.tasks.map((task) => (
+                              <li
+                                key={task.id}
+                                className="flex items-center justify-between gap-3 text-[12.5px] text-ink-soft"
+                              >
+                                <span>{task.title}</span>
+                                <span className="font-semibold">{formatCurrency(task.price)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                       </div>
-                      <ul className="space-y-1">
-                        {milestone.tasks.map((task) => (
-                          <li
-                            key={task.id}
-                            className="flex items-center justify-between gap-3 text-[12.5px] text-ink-soft"
-                          >
-                            <span>{task.title}</span>
-                            <span className="font-semibold">{formatCurrency(task.price)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="flex gap-2.5 mt-5 pt-5 border-t border-line flex-wrap">
@@ -226,10 +252,15 @@ export function PortalQuotes() {
                       </Button>
                     </>
                   ) : null}
+                  {quote.convertedProjectId && projectFor({ projectId: quote.convertedProjectId }) ? (
+                    <Link to={`/portal/${client.portalToken}/progress`}>
+                      <Button icon={GaugeCircle}>Track this project</Button>
+                    </Link>
+                  ) : null}
                   <Button
                     variant="ghost"
                     icon={Download}
-                    className={awaiting ? 'ml-auto' : ''}
+                    className="ml-auto"
                     onClick={() => downloadQuotePdf({ quote, client, settings })}
                   >
                     Download PDF

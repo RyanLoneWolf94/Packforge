@@ -1,12 +1,12 @@
 import {
   Bell,
-  Calendar,
   ExternalLink,
   FileText,
   FolderArchive,
   FolderKanban,
   GaugeCircle,
   LayoutDashboard,
+  LayoutTemplate,
   LogOut,
   Mail,
   Megaphone,
@@ -47,7 +47,7 @@ const MENU_SECTIONS = [
     items: [
       { icon: FileText, label: "Quotations", href: "/admin/quotations" },
       { icon: PenTool, label: "Contracts", href: "/admin/contracts" },
-      { icon: Calendar, label: "Timelines", href: "/admin/timelines" },
+      { icon: LayoutTemplate, label: "Blueprints", href: "/admin/blueprints" },
       { icon: Mail, label: "Emails", href: "/admin/emails" },
     ],
   },

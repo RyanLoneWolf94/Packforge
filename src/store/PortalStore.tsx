@@ -86,7 +86,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       // Studio-internal working tasks are never exposed to clients.
       projectTasks: [],
       emailTemplates: [],
-      planTemplates: [],
+      blueprints: [],
       campaigns: [],
       newsletters: [],
       settings,
@@ -174,7 +174,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       }) as never,
       deleteClient: noop,
     };
-  }, [snapshot, quotes, loading, token]);
+  }, [snapshot, quotes, contracts, loading, token]);
 
   if (loading) {
     return (

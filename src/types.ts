@@ -101,6 +101,8 @@ export interface Project {
   timeline: TimelineWeek[];
   actionItems: ActionItem[];
   brandSnapshot?: BrandSnapshot;
+  /** The blueprint this project was seeded from, if any. */
+  blueprintId?: string;
 }
 
 /* ---------------------------- Internal tasks --------------------------- */
@@ -185,6 +187,8 @@ export interface Quote {
   milestones: QuoteMilestone[];
   timelineDays: number;
   convertedProjectId?: string;
+  /** The blueprint this quote was started from, if any. */
+  blueprintId?: string;
 }
 
 /* ------------------------------- Contracts ----------------------------- */
@@ -335,22 +339,44 @@ export interface EmailTemplate {
   category: string;
 }
 
-/* --------------------------- Plan templates ---------------------------- */
+/* ------------------------------ Blueprints ----------------------------- */
 
-export interface PlanPhase {
-  id: string;
-  name: string;
-  days: number;
-  /** A brand token name (orange/purple/gold/red/positive) for the Gantt bar. */
-  tone: 'orange' | 'purple' | 'gold' | 'red' | 'positive';
-}
-
-export interface PlanTemplate {
+/**
+ * A reusable, editable template for a kind of engagement — for any business
+ * line, not just branding. A blueprint carries everything needed to start
+ * work in one step:
+ *
+ * - `milestones`: the priced breakdown, copied into a quote.
+ * - `phases`: the delivery workflow with deliverables, seeded into the tracker.
+ * - `timeline`: the client-facing stages shown in the portal.
+ *
+ * Its price is derived from the milestones, never stored. Quotes and projects
+ * remember which blueprint they came from via `blueprintId`; a quote built
+ * from scratch can be saved back as a new blueprint.
+ */
+export interface Blueprint {
   id: string;
   title: string;
+  /** Business line, e.g. "Branding", "Digital Marketing", "Software Development". */
+  category: string;
   description: string;
-  phases: PlanPhase[];
+  milestones: QuoteMilestone[];
+  phases: TrackerPhase[];
+  timeline: TimelineWeek[];
+  timelineDays: number;
+  createdAt: string;
 }
+
+/** Suggested business lines. Free text elsewhere — these just seed the picker. */
+export const BLUEPRINT_CATEGORIES = [
+  'Branding',
+  'Digital Marketing',
+  'Software Development',
+  'Web Design',
+  'Ad Design',
+  'Video & Motion',
+  'Other',
+] as const;
 
 /* ------------------------------ Marketing ------------------------------ */
 

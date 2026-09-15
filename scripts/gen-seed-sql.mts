@@ -21,7 +21,6 @@ const TABLES: { key: keyof typeof SEED; table: string }[] = [
   { key: 'team', table: 'team' },
   { key: 'timeEntries', table: 'timeEntries' },
   { key: 'emailTemplates', table: 'emailTemplates' },
-  { key: 'planTemplates', table: 'planTemplates' },
   { key: 'campaigns', table: 'campaigns' },
   { key: 'newsletters', table: 'newsletters' },
 ];

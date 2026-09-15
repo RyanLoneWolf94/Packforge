@@ -24,7 +24,6 @@ import {
   StatusPill,
   Textarea,
 } from '@/src/components/ui';
-import { BRANDING_PACKAGES, type TierId } from '@/src/brand';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
 import {
   projectBudget,
@@ -284,17 +283,18 @@ function NewProjectModal({
   onClose: () => void;
   onCreated?: (id: string) => void;
 }) {
-  const { clients, createProject } = useStudio();
+  const { clients, blueprints, createProject } = useStudio();
   const [form, setForm] = useState({
     name: '',
     clientId: '',
-    tier: 'wolf' as TierId,
+    blueprintId: '',
     startDate: new Date().toISOString().slice(0, 10),
     targetDelivery: '',
     summary: '',
   });
 
-  const pkg = BRANDING_PACKAGES.find((p) => p.id === form.tier)!;
+  // Optional: a blueprint seeds the phases, deliverables and client timeline.
+  const bp = blueprints.find((b) => b.id === form.blueprintId);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,16 +302,17 @@ function NewProjectModal({
       toast.error('Project name and client are required');
       return;
     }
+    const days = bp?.timelineDays ?? 28;
     const project = createProject({
       name: form.name.trim(),
       clientId: form.clientId,
-      tier: form.tier,
-      packageName: pkg.name,
+      packageName: bp?.title ?? 'Custom engagement',
+      blueprint: bp,
       startDate: form.startDate,
       targetDelivery:
         form.targetDelivery ||
-        new Date(Date.now() + 28 * 86_400_000).toISOString().slice(0, 10),
-      summary: form.summary.trim() || pkg.bestFor,
+        new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10),
+      summary: form.summary.trim() || bp?.description || '',
     });
     toast.success(`${project.name} created with ${project.phases.length} phases`);
     onCreated?.(project.id);
@@ -319,7 +320,7 @@ function NewProjectModal({
     setForm({
       name: '',
       clientId: '',
-      tier: 'wolf',
+      blueprintId: '',
       startDate: new Date().toISOString().slice(0, 10),
       targetDelivery: '',
       summary: '',
@@ -368,25 +369,31 @@ function NewProjectModal({
           </Select>
         </Field>
 
-        <Field label="Service Package" hint={pkg.bestFor}>
-          <div className="grid grid-cols-3 gap-2">
-            {BRANDING_PACKAGES.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setForm({ ...form, tier: p.id })}
-                className={cn(
-                  'rounded-lg border-2 p-3 text-left transition-colors',
-                  form.tier === p.id
-                    ? 'border-orange bg-orange-dim'
-                    : 'border-line hover:border-ink-faint',
-                )}
-              >
-                <div className="font-bold text-sm text-ink">{p.name}</div>
-                <div className="text-xs text-ink-soft">{formatCurrency(p.price)}</div>
-              </button>
+        <Field
+          label="Blueprint"
+          hint={
+            bp
+              ? `${bp.phases.length} phases · ${bp.timeline.length} timeline stages · ${bp.timelineDays} days`
+              : 'Optional — seeds the phases, deliverables and client timeline. Leave blank to start empty.'
+          }
+        >
+          <Select
+            value={form.blueprintId}
+            onChange={(e) => setForm({ ...form, blueprintId: e.target.value })}
+          >
+            <option value="">Blank project</option>
+            {[...new Set(blueprints.map((b) => b.category))].sort().map((cat) => (
+              <optgroup key={cat} label={cat}>
+                {blueprints
+                  .filter((b) => b.category === cat)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.title}
+                    </option>
+                  ))}
+              </optgroup>
             ))}
-          </div>
+          </Select>
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
@@ -411,7 +418,7 @@ function NewProjectModal({
             rows={3}
             value={form.summary}
             onChange={(e) => setForm({ ...form, summary: e.target.value })}
-            placeholder={pkg.bestFor}
+            placeholder={bp?.description || 'What this engagement is about'}
           />
         </Field>
       </form>
