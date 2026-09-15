@@ -135,7 +135,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         throw new Error('The client portal is read-only.');
       }) as never,
       deleteClient: noop,
-      resetToSeed: noop,
     };
   }, [snapshot, quotes, loading, token]);
 

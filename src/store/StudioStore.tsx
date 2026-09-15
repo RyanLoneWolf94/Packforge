@@ -143,8 +143,6 @@ interface StudioContextValue extends StudioState {
   projectFor: (item: { projectId?: string }) => Project | undefined;
   projectsForClient: (clientId: string) => Project[];
   clientByToken: (token: string) => Client | undefined;
-
-  resetToSeed: () => void;
 }
 
 // Exported so the portal provider can supply the same shape to shared pages
@@ -153,6 +151,27 @@ export const StudioContext = createContext<StudioContextValue | null>(null);
 
 let seq = 0;
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
+
+/**
+ * Drop undefined keys from a row before INSERT, so the column falls back to its
+ * database default instead of being sent as an explicit null.
+ */
+function forInsert(row: object): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(row).filter(([, v]) => v !== undefined),
+  ) as Record<string, unknown>;
+}
+
+/**
+ * Turn undefined into null before UPDATE. JSON serialisation drops undefined
+ * entirely, which would silently leave the old value in place — so clearing an
+ * optional field (an invoice's project link, say) would never persist.
+ */
+function forUpdate(patch: object): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(patch).map(([k, v]) => [k, v === undefined ? null : v]),
+  ) as Record<string, unknown>;
+}
 
 /** Lowercase, hyphenated, URL-safe token for portal share links. */
 function slugify(value: string) {
@@ -221,16 +240,32 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     });
   }, [refresh]);
 
-  /** Fire a persistence promise; on failure, toast and resync from the server. */
+  /**
+   * Serialised write queue.
+   *
+   * Writes must reach Postgres in the order the UI issued them: converting a
+   * quote inserts a project and then points the quote at it, and a blueprint
+   * inserts a project then overwrites its phases. Fired concurrently, the
+   * dependent write can land first — tripping the foreign key, or silently
+   * updating zero rows. Each request is therefore a thunk that is only issued
+   * when its turn in the chain comes up.
+   */
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+
   const persist = useCallback(
-    (promise: PromiseLike<{ error: { message: string } | null }>, label: string) => {
-      Promise.resolve(promise).then(({ error }) => {
-        if (error) {
-          console.error(`${label} failed:`, error.message);
-          toast.error(`Couldn't save — ${label}. Reverting.`);
-          refresh().catch(() => undefined);
-        }
-      });
+    (run: () => PromiseLike<{ error: { message: string } | null }>, label: string) => {
+      queue.current = queue.current
+        .then(() => run())
+        .then(({ error }) => {
+          if (error) {
+            console.error(`${label} failed:`, error.message);
+            toast.error(`Couldn't save — ${label}. Reverting.`);
+            return refresh().catch(() => undefined);
+          }
+        })
+        .catch((err) => {
+          console.error(`${label} threw:`, err);
+        });
     },
     [refresh],
   );
@@ -246,15 +281,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         projects: prev.projects.map((p) => (p.id === projectId ? nextProject : p)),
       }));
       persist(
-        supabase
-          .from('projects')
-          .update({
-            phases: nextProject.phases,
-            timeline: nextProject.timeline,
-            actionItems: nextProject.actionItems,
-            brandSnapshot: nextProject.brandSnapshot ?? null,
-          })
-          .eq('id', projectId),
+        () =>
+          supabase
+            .from('projects')
+            .update({
+              phases: nextProject.phases,
+              timeline: nextProject.timeline,
+              actionItems: nextProject.actionItems,
+              brandSnapshot: nextProject.brandSnapshot ?? null,
+            })
+            .eq('id', projectId),
         'update project',
       );
     },
@@ -284,7 +320,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       add(key, item) {
         const created = { ...(item as object), id: uid(key.slice(0, 2)) } as Item<typeof key>;
         setState((prev) => ({ ...prev, [key]: [created, ...prev[key]] }) as StudioState);
-        persist(supabase.from(key).insert(created as object), `add ${key}`);
+        persist(() => supabase.from(key).insert(forInsert(created as object)), `add ${key}`);
         return created;
       },
 
@@ -298,7 +334,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               ),
             }) as StudioState,
         );
-        persist(supabase.from(key).update(patch as object).eq('id', id), `update ${key}`);
+        persist(
+          () => supabase.from(key).update(forUpdate(patch as object)).eq('id', id),
+          `update ${key}`,
+        );
       },
 
       remove(key, id) {
@@ -309,13 +348,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               [key]: (prev[key] as { id: string }[]).filter((row) => row.id !== id),
             }) as StudioState,
         );
-        persist(supabase.from(key).delete().eq('id', id), `remove ${key}`);
+        persist(() => supabase.from(key).delete().eq('id', id), `remove ${key}`);
       },
 
       updateSettings(patch) {
         setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }));
         persist(
-          supabase.from('settings').update(patch as object).eq('id', 'studio'),
+          () => supabase.from('settings').update(forUpdate(patch as object)).eq('id', 'studio'),
           'update settings',
         );
       },
@@ -341,7 +380,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           archived: false,
         };
         setState((prev) => ({ ...prev, projects: [project, ...prev.projects] }));
-        persist(supabase.from('projects').insert(project as object), 'create project');
+        persist(
+          () => supabase.from('projects').insert(forInsert(project as object)),
+          'create project',
+        );
         return project;
       },
 
@@ -367,7 +409,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             q.convertedProjectId === id ? { ...q, convertedProjectId: undefined } : q,
           ),
         }));
-        persist(supabase.from('projects').delete().eq('id', id), 'delete project');
+        persist(() => supabase.from('projects').delete().eq('id', id), 'delete project');
       },
 
       toggleDeliverable(projectId, phaseId, deliverableId) {
@@ -429,14 +471,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       },
 
       createClient(input) {
+        // portalToken is UNIQUE in the database, so two clients whose names
+        // slugify the same way would collide and fail the insert. Suffix until
+        // the token is free.
+        const base = slugify(input.name);
+        const taken = new Set(state.clients.map((c) => c.portalToken));
+        let portalToken = base;
+        for (let n = 2; taken.has(portalToken); n++) portalToken = `${base}-${n}`;
+
         const client: Client = {
           ...input,
           id: uid('cl'),
-          portalToken: slugify(input.name),
+          portalToken,
           createdAt: new Date().toISOString().slice(0, 10),
         };
         setState((prev) => ({ ...prev, clients: [client, ...prev.clients] }));
-        persist(supabase.from('clients').insert(client as object), 'create client');
+        persist(() => supabase.from('clients').insert(forInsert(client as object)), 'create client');
         return client;
       },
 
@@ -451,7 +501,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           contracts: prev.contracts.filter((c) => c.clientId !== id),
           files: prev.files.filter((f) => f.clientId !== id),
         }));
-        persist(supabase.from('clients').delete().eq('id', id), 'delete client');
+        persist(() => supabase.from('clients').delete().eq('id', id), 'delete client');
       },
 
       clientFor(item) {
@@ -468,12 +518,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       clientByToken(token) {
         return state.clients.find((c) => c.portalToken === token);
-      },
-
-      resetToSeed() {
-        // Data now lives in the cloud; a local reset would just be overwritten.
-        toast.info('Demo reset is disabled in cloud mode.');
-        refresh().catch(() => undefined);
       },
     };
   }, [state, loading, refresh, persist, patchProject, patchPhase]);

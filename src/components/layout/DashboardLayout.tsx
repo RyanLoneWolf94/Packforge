@@ -136,14 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="px-4 py-4 border-t border-night-line">
-          <Link
-            to="/portal"
-            target="_blank"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <ExternalLink size={17} />
-            <span className="text-[13px]">Client portal preview</span>
-          </Link>
+          <PortalPreviewLink />
         </div>
       </aside>
 
@@ -260,6 +253,42 @@ function GlobalSearch() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Opens a real client's portal.
+ *
+ * The portal is anonymous and resolves a client from its share token, so there
+ * is no "first client" for it to fall back to — a bare `/portal` can only show
+ * the not-found card. Preview the first client's actual token instead.
+ */
+function PortalPreviewLink() {
+  const { clients } = useStudio();
+  const token = clients[0]?.portalToken;
+
+  if (!token) {
+    return (
+      <span
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/25 cursor-not-allowed"
+        title="Add a client to preview their portal"
+      >
+        <ExternalLink size={17} />
+        <span className="text-[13px]">Client portal preview</span>
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      to={`/portal/${token}`}
+      target="_blank"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition-colors"
+      title={`Preview ${clients[0].name}'s portal`}
+    >
+      <ExternalLink size={17} />
+      <span className="text-[13px]">Client portal preview</span>
+    </Link>
   );
 }
 

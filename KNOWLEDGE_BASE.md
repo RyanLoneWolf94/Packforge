@@ -1,8 +1,8 @@
 # Packforge — Project Knowledge Base
 
 > Internal studio-management app ("Studio OS") for **LoneWolf Digital Inc**.
-> Single-page React app, fully client-side, backed by `localStorage`.
-> Last reviewed: 2026-09-14.
+> React SPA on Vite, backed by **Supabase** (Postgres + Auth), deployed on Netlify.
+> Last reviewed: 2026-09-15.
 
 ---
 
@@ -57,9 +57,21 @@ npm run lint     # tsc --noEmit (type-check only)
 
 ### 3.1 The store is the single source of truth
 Everything shared lives in **`src/store/StudioStore.tsx`** (`StudioProvider` /
-`useStudio`), persisted to `localStorage` under key **`packforge.studio.v2`**.
-No page holds its own hardcoded data array. Swapping in a real backend later
-means replacing persistence in this one file.
+`useStudio`), backed by **Supabase**. No page holds its own hardcoded data array.
+
+Reads load every collection on mount; writes apply **optimistically** to local
+state and then persist. Two invariants matter:
+
+- **Writes are serialised** through a FIFO queue (each request is a thunk issued
+  only when its turn comes). Converting a quote inserts a project *then* points
+  the quote at it; fired concurrently the dependent write can land first and
+  trip the foreign key or update zero rows.
+- **`undefined` is normalised**: dropped on INSERT (so the column default
+  applies), converted to `null` on UPDATE (so clearing an optional field
+  actually persists — JSON serialisation would otherwise drop it silently).
+
+On a write error the store toasts and refetches, so the UI can't drift from the
+database.
 
 **Generic typed CRUD** over 14 collections:
 ```ts
@@ -113,12 +125,17 @@ src/
   brand.ts                    # STUDIO constants, BRAND_COLORS, service packages/tiers
   types.ts                    # full domain model (see §6)
   index.css                   # Tailwind v4 @theme brand tokens
-  store/StudioStore.tsx       # the store — single source of truth
+  store/StudioStore.tsx       # the store — single source of truth (Supabase-backed)
+  store/PortalStore.tsx       # read-only portal provider, fed by portal_snapshot RPC
+  auth/AuthProvider.tsx       # session + is_studio_admin check
+  auth/Login.tsx              # branded sign-in (password + magic link)
+  auth/RequireAdmin.tsx       # gate for /admin
   data/
     seed.ts                   # seed data for every collection + settings
     phaseTemplates.ts         # phasesForTier / timelineForTier
     defaultTasks.ts           # Kanban default tasks (extracted for Fast Refresh)
   lib/
+    supabase.ts               # the Supabase client (VITE_SUPABASE_* env vars)
     tracker.ts                # progress/health derivations
     finance.ts                # money/time derivations
     pdf.ts                    # branded invoice & quote PDF generator
@@ -217,19 +234,56 @@ wrapped result in an isolated `<iframe srcDoc>`.
 
 ---
 
-## 8. Deliberately deferred (do NOT "fix" as oversights)
+## 8. Backend & security model
 
-1. **AI / Gemini features** were stripped at the user's request, to return in a
-   future update. Every Gemini touchpoint was removed and `@google/genai`
-   uninstalled.
-2. **No backend / auth.** Supabase + Netlify deploy are a later phase. All data
-   is `localStorage`. `/admin` is intentionally unguarded for now. `StudioStore`
-   is the single seam to swap for a real backend.
+Supabase project `uniafzcpxyxmcxoccwue` (org "LoneWolf Digital", ap-southeast-1).
+15 tables mirror `src/types.ts` with **quoted camelCase columns**, so rows
+deserialize straight into the entity types with no field mapping. Foreign keys
+enforce the same cascade (delete a client) / detach (delete a project) rules the
+store applies locally.
 
-When asked for improvements, stay client-side and route new shared data through
-`StudioStore` (not page-local `useState`) unless the backend phase is reopened.
+Access is layered:
+
+| Actor | Mechanism | Sees |
+|---|---|---|
+| Studio admin | Supabase Auth + `app_admins` allow-list, checked in RLS via `auth.jwt()->>'email'` | Everything; full CRUD |
+| Other signed-in user | Same RLS, not on the allow-list | **Nothing** (0 rows) |
+| Anonymous (portal) | No table grants at all; `SECURITY DEFINER` RPCs only | One client, by share token |
+
+- `portal_snapshot(token)` returns a single client's data, files filtered to
+  `sharedWithClient`. `portal_respond_quote(token, quoteId, status)` is the only
+  write the portal can make.
+- `is_studio_admin()` powers the app-level gate (`RequireAdmin`).
+- `anon` deliberately holds **no** SELECT/INSERT/UPDATE/DELETE. `authenticated`
+  holds DML, narrowed by RLS. Don't "helpfully" grant anon table access.
+- The two "public can execute SECURITY DEFINER" advisor warnings are expected —
+  the portal RPCs are meant to be anon-callable.
+
+Still deferred: **AI / Gemini features** were stripped at the user's request to
+return later; every Gemini touchpoint was removed and `@google/genai`
+uninstalled. Don't "fix" that as an oversight.
+
+Route new shared data through `StudioStore`, never page-local `useState`. New
+tables need matching RLS (admin allow-list for studio data; an RPC for anything
+the portal must see) — and re-run the security advisor after any DDL.
 
 ---
+
+## 8b. Known gaps (verified 2026-09-15, not yet built)
+
+Found during a full sweep; none of these is a broken control, each is something
+the data model promises that no UI delivers:
+
+1. **Project status can never change.** `Projects.tsx` is read-only and nothing
+   anywhere writes `project.status`, so a created project stays `planning`
+   forever. `ProjectStatus` offers 5 values; only the seed ever set them.
+2. **Archiving isn't implemented.** `Project.archived` is only ever written as
+   `false` (in `createProject`), so the portal's `!p.archived` filter is a no-op.
+   Note the two parallel concepts — the `archived` boolean and
+   `status === 'archived'` — which should be reconciled when this is built.
+3. **The Kanban board is still browser-local.** `Projects.tsx` keeps tasks under
+   its own `project_tasks` localStorage key, so the board doesn't sync across
+   devices the way everything else now does.
 
 ## 9. Assets the user must supply
 

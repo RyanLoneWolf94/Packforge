@@ -6,7 +6,6 @@ import {
   Card,
   Field,
   Input,
-  Modal,
   PageHeader,
   StatusPill,
   Textarea,
@@ -42,7 +41,7 @@ const INTEGRATION_META: Record<
 };
 
 export default function Settings() {
-  const { settings, updateSettings, resetToSeed } = useStudio();
+  const { settings, updateSettings, refresh } = useStudio();
   const [tab, setTab] = useState<TabId>('studio');
 
   return (
@@ -81,7 +80,7 @@ export default function Settings() {
           {tab === 'integrations' ? (
             <IntegrationSettings settings={settings} onSave={updateSettings} />
           ) : null}
-          {tab === 'data' ? <DataSettings onReset={resetToSeed} /> : null}
+          {tab === 'data' ? <DataSettings onRefresh={refresh} /> : null}
         </div>
       </div>
     </div>
@@ -246,46 +245,39 @@ function IntegrationSettings({
   );
 }
 
-function DataSettings({ onReset }: { onReset: () => void }) {
-  const [confirm, setConfirm] = useState(false);
+function DataSettings({ onRefresh }: { onRefresh: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
   return (
     <Card className="p-7">
-      <h3 className="disp font-extrabold text-ink">Local Data</h3>
+      <h3 className="disp font-extrabold text-ink">Studio Data</h3>
       <p className="text-sm text-ink-soft mt-1 max-w-lg">
-        Everything in Packforge is stored in this browser for now. You can reset it back to the
-        starting demo content at any time — useful before a live demo, or to clear test entries.
+        Your studio data lives in the cloud, not in this browser — every change saves as you make
+        it, and the same records appear on any device you sign in from. Client portals read from
+        the same source, so what you change here is what clients see.
       </p>
-      <Button variant="danger" icon={RotateCcw} className="mt-5" onClick={() => setConfirm(true)}>
-        Reset to demo data
-      </Button>
-
-      <Modal
-        open={confirm}
-        onClose={() => setConfirm(false)}
-        title="Reset all data?"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirm(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                onReset();
-                setConfirm(false);
-                toast.success('Data reset to demo content');
-              }}
-            >
-              Reset Everything
-            </Button>
-          </>
-        }
+      <p className="text-sm text-ink-soft mt-3 max-w-lg">
+        Pull the latest copy if you've been editing from another device, or if a save reported an
+        error.
+      </p>
+      <Button
+        variant="secondary"
+        icon={RotateCcw}
+        className="mt-5"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await onRefresh();
+            toast.success('Reloaded from the cloud');
+          } catch {
+            toast.error("Couldn't reach the server");
+          } finally {
+            setBusy(false);
+          }
+        }}
       >
-        <p className="text-sm text-ink-soft">
-          This clears every client, project, invoice, quote and setting you've changed, and
-          restores the original demo content. It can't be undone.
-        </p>
-      </Modal>
+        {busy ? 'Reloading…' : 'Reload from cloud'}
+      </Button>
     </Card>
   );
 }
