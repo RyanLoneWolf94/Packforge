@@ -12,7 +12,7 @@ import { emailButton, emailCallout, emailEyebrow, emailHeading, wrapEmail } from
 import { STUDIO } from '../src/brand';
 
 /** Emails can't use relative paths — the logo needs an absolute, public URL. */
-const SITE = 'https://lonewolf-packforge.netlify.app';
+const SITE = 'https://portal.lonewolfdigitech.com';
 
 const brand = {
   studioName: STUDIO.name,
