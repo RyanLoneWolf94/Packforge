@@ -125,7 +125,7 @@ export default function Teams() {
           <EmptyState
             icon={Users}
             title="No team members"
-            description="Add collaborators to track capacity across the studio."
+            description="Add collaborators to track capacity across the team."
             action={
               <Button icon={Plus} onClick={openAdd}>
                 Add Member

@@ -64,7 +64,7 @@ export default function Integrations() {
       />
 
       <div className="rounded-xl bg-gold-dim border border-gold/30 px-4 py-3 text-[13px] text-gold-deep">
-        Marking a provider as used records your intent so the studio is configured and ready. Actual
+        Marking a provider as used records your intent so the setup is ready. Actual
         sending and payments switch on when the backend is deployed.
       </div>
 

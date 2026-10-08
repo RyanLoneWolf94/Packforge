@@ -47,7 +47,7 @@ export default function PortalLayout() {
           <EmptyState
             icon={ShieldCheck}
             title="Portal not found"
-            description="This link doesn't match an active client. Check with your studio contact for an up-to-date link."
+            description="This link doesn't match an active client. Check with your contact for an up-to-date link."
           />
         </Card>
       </div>

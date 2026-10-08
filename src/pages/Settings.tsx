@@ -17,7 +17,7 @@ import type { StudioSettings } from '@/src/types';
 type TabId = 'studio' | 'notifications' | 'integrations' | 'data';
 
 const TABS: { id: TabId; label: string; icon: typeof User }[] = [
-  { id: 'studio', label: 'Studio Profile', icon: Building2 },
+  { id: 'studio', label: 'Business Profile', icon: Building2 },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'integrations', label: 'Integrations', icon: PlugZap },
   { id: 'data', label: 'Data', icon: RotateCcw },
@@ -36,7 +36,7 @@ const INTEGRATION_META: Record<
 > = {
   mailchimp: { name: 'Mailchimp', blurb: 'Sync contacts and send newsletters.' },
   sendgrid: { name: 'SendGrid', blurb: 'Transactional email delivery.' },
-  whatsapp: { name: 'WhatsApp Business', blurb: 'Message clients from the studio.' },
+  whatsapp: { name: 'WhatsApp Business', blurb: 'Message clients from Packforge.' },
   stripe: { name: 'Stripe', blurb: 'Collect invoice payments online.' },
 };
 
@@ -48,7 +48,7 @@ export default function Settings() {
     <div className="max-w-[1000px] space-y-6">
       <PageHeader
         title="Settings"
-        subtitle="Studio details here appear on invoices and in every client portal."
+        subtitle="Business details here appear on invoices and in every client portal."
       />
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -106,18 +106,18 @@ function StudioProfile({
         onSubmit={(e) => {
           e.preventDefault();
           onSave(form);
-          toast.success('Studio profile saved — invoices and portals updated');
+          toast.success('Profile saved — invoices and portals updated');
         }}
         className="space-y-5"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label="Studio Name">
+          <Field label="Business Name">
             <Input
               value={form.studioName}
               onChange={(e) => setForm({ ...form, studioName: e.target.value })}
             />
           </Field>
-          <Field label="Studio Lead">
+          <Field label="Lead Contact">
             <Input value={form.lead} onChange={(e) => setForm({ ...form, lead: e.target.value })} />
           </Field>
           <Field label="Website">
@@ -152,7 +152,7 @@ function StudioProfile({
         </Field>
         <div className="flex justify-end">
           <Button type="submit" disabled={!dirty}>
-            Save Studio Profile
+            Save Profile
           </Button>
         </div>
       </form>
@@ -202,7 +202,7 @@ function IntegrationSettings({
     <Card className="p-7">
       <div className="rounded-xl bg-gold-dim border border-gold/30 px-4 py-3 mb-5 text-[13px] text-gold-deep">
         Live sending goes through these once the backend is connected. You can pre-mark which ones
-        you use so the studio is ready to switch them on.
+        you use so they're ready to switch on.
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {keys.map((key) => {
@@ -249,9 +249,9 @@ function DataSettings({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   return (
     <Card className="p-7">
-      <h3 className="disp font-extrabold text-ink">Studio Data</h3>
+      <h3 className="disp font-extrabold text-ink">Your Data</h3>
       <p className="text-sm text-ink-soft mt-1 max-w-lg">
-        Your studio data lives in the cloud, not in this browser — every change saves as you make
+        Your data lives in the cloud, not in this browser — every change saves as you make
         it, and the same records appear on any device you sign in from. Client portals read from
         the same source, so what you change here is what clients see.
       </p>

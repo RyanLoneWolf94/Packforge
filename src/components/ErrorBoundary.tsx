@@ -31,7 +31,7 @@ export default class ErrorBoundary extends Component<
           </div>
           <h1 className="disp text-lg font-extrabold text-ink">Something broke</h1>
           <p className="text-sm text-ink-soft mt-2">
-            This screen hit an unexpected error. Your saved studio data is untouched.
+            This screen hit an unexpected error. Your saved data is untouched.
           </p>
           <pre className="mt-4 text-left text-[11px] bg-surface-2 border border-line rounded-lg p-3 overflow-x-auto text-ink-soft">
             {error.message}

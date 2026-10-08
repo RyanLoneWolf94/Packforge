@@ -88,7 +88,7 @@ export default function App() {
               <Route path="*" element={<PortalOverview />} />
             </Route>
 
-            {/* Studio workspace — gated to allow-listed admins, then the
+            {/* Admin workspace — gated to allow-listed admins, then the
                 Supabase-backed store is mounted for the signed-in session. */}
             <Route
               path="/admin/*"

@@ -236,7 +236,7 @@ export function PortalQuotes() {
                         icon={CheckCircle2}
                         onClick={() => {
                           update('quotes', quote.id, { status: 'accepted' });
-                          toast.success('Quote accepted — the studio has been notified');
+                          toast.success('Quote accepted — we have been notified');
                         }}
                       >
                         Accept Quote
@@ -472,7 +472,7 @@ export function PortalContracts() {
             ) : (
               <p className="text-sm text-ink-soft">
                 The written terms for this agreement haven't been published yet. Please contact
-                your studio lead before signing.
+                your contact before signing.
               </p>
             )}
 

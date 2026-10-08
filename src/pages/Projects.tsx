@@ -302,7 +302,7 @@ export default function Projects() {
 
                 {selected.status === 'archived' ? (
                   <div className="mb-4 px-4 py-2.5 rounded-lg bg-surface-2 border border-line text-[13px] text-ink-soft">
-                    This project is archived. It stays in the studio's records but no longer
+                    This project is archived. It stays in your records but no longer
                     appears in the client's portal.
                   </div>
                 ) : null}

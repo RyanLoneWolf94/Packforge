@@ -320,7 +320,7 @@ function UserMenu() {
             to="/admin/settings"
             className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-ink-soft hover:bg-surface-2 hover:text-ink transition-colors"
           >
-            <SettingsIcon size={15} /> Studio settings
+            <SettingsIcon size={15} /> Settings
           </Link>
           <button
             onClick={() => signOut()}

@@ -83,7 +83,7 @@ export default function Expenses() {
     <div className="max-w-[1400px] space-y-6">
       <PageHeader
         title="Expenses"
-        subtitle="Studio overhead and rebillable project costs."
+        subtitle="Overhead and rebillable project costs."
         actions={
           <Button icon={Plus} onClick={() => setIsOpen(true)}>
             Log Expense
@@ -103,7 +103,7 @@ export default function Expenses() {
           icon={Wallet}
           tone="neutral"
           value={formatCurrency(total - billable)}
-          label="Studio Overhead"
+          label="Overhead"
         />
       </div>
 
@@ -247,7 +247,7 @@ export default function Expenses() {
                 value={form.projectId}
                 onChange={(e) => setForm({ ...form, projectId: e.target.value })}
               >
-                <option value="">Studio overhead</option>
+                <option value="">General overhead</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}

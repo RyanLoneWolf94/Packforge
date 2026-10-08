@@ -67,7 +67,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-[1400px] space-y-6">
       <PageHeader
-        title="Studio Dashboard"
+        title="Dashboard"
         subtitle="Live rollup across every active engagement."
       />
 
@@ -77,7 +77,7 @@ export default function Dashboard() {
           tone="purple"
           value={live.length}
           label="Active Projects"
-          hint={`${projects.length} total in the studio`}
+          hint={`${projects.length} total`}
         />
         <StatCard
           icon={DollarSign}

@@ -393,7 +393,7 @@ export default function Contracts() {
               value={form.body}
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               className="leading-relaxed"
-              placeholder={'1. SCOPE OF WORK\nWhat the studio will deliver…'}
+              placeholder={'1. SCOPE OF WORK\nWhat will be delivered…'}
             />
           </Field>
         </form>
@@ -424,7 +424,7 @@ export default function Contracts() {
         }
       >
         <p className="text-sm text-ink-soft">
-          <b className="text-ink">{confirmDelete?.title}</b> will be removed from the studio and
+          <b className="text-ink">{confirmDelete?.title}</b> will be removed from Packforge and
           from the client's portal.
         </p>
       </Modal>

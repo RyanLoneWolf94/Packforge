@@ -42,7 +42,7 @@ export default function Login() {
         toast.success('Account created — check your email to confirm, then sign in.');
         setIsSignUp(false);
       } else {
-        toast.success('Welcome to the studio.');
+        toast.success('Welcome back.');
       }
     }
     // On success the auth listener swaps this screen for the workspace.
@@ -72,9 +72,9 @@ export default function Login() {
         </div>
 
         <Card className="p-7">
-          <h1 className="disp text-xl font-extrabold text-ink text-center">Studio Workspace</h1>
+          <h1 className="disp text-xl font-extrabold text-ink text-center">Packforge</h1>
           <p className="text-[13px] text-ink-soft text-center mt-1 mb-6">
-            Sign in to manage {STUDIO.name}.
+            Sign in to {STUDIO.name}.
           </p>
 
           {sent ? (
@@ -163,9 +163,6 @@ export default function Login() {
           )}
         </Card>
 
-        <p className="text-center text-[11px] text-ink-faint mt-5">
-          Client looking for your project? Use the portal link your studio sent you.
-        </p>
       </div>
     </div>
   );

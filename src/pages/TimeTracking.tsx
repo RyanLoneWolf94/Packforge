@@ -103,7 +103,7 @@ export default function TimeTracking() {
     <div className="max-w-[1400px] space-y-6">
       <PageHeader
         title="Time Tracking"
-        subtitle="Track studio hours against projects."
+        subtitle="Track hours against projects."
         actions={
           <Button variant="secondary" icon={Plus} onClick={() => setIsManualOpen(true)}>
             Manual Entry
@@ -192,7 +192,7 @@ export default function TimeTracking() {
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-ink truncate">{entry.task}</p>
                 <p className="text-[11.5px] text-ink-soft">
-                  {projectFor(entry)?.name ?? 'Studio overhead'} · {formatDate(entry.date)}
+                  {projectFor(entry)?.name ?? 'General overhead'} · {formatDate(entry.date)}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -245,7 +245,7 @@ export default function TimeTracking() {
               value={manual.projectId}
               onChange={(e) => setManual({ ...manual, projectId: e.target.value })}
             >
-              <option value="">Studio overhead</option>
+              <option value="">General overhead</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}

@@ -51,8 +51,8 @@ export default function RequireAdmin({ children }: { children: ReactNode }) {
           </div>
           <h1 className="disp text-lg font-extrabold text-ink">Not authorised</h1>
           <p className="text-sm text-ink-soft mt-2">
-            <b>{session.user.email}</b> isn't on the studio access list. Ask an existing admin to add
-            you, then sign in again.
+            <b>{session.user.email}</b> isn't on the access list. Add it to the{' '}
+            <code className="text-orange">app_admins</code> table in Supabase, then sign in again.
           </p>
           <Button variant="secondary" className="mt-5" onClick={signOut}>
             Sign out

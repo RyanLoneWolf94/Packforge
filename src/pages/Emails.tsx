@@ -112,7 +112,7 @@ export default function Emails() {
     <div className="max-w-[1200px] space-y-6">
       <PageHeader
         title="Email Templates"
-        subtitle="Reusable copy for the emails the studio sends clients."
+        subtitle="Reusable copy for the emails you send clients."
         actions={
           <Button icon={Plus} onClick={openAdd}>
             New Template
