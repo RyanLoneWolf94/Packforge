@@ -60,13 +60,8 @@ export default function Integrations() {
     <div className="max-w-[1200px] space-y-6">
       <PageHeader
         title="Integrations"
-        subtitle="Connect the tools you use. Live wiring activates with the backend."
+        subtitle="Track which providers you use across client work."
       />
-
-      <div className="rounded-xl bg-gold-dim border border-gold/30 px-4 py-3 text-[13px] text-gold-deep">
-        Marking a provider as used records your intent so the setup is ready. Actual
-        sending and payments switch on when the backend is deployed.
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {PROVIDERS.map((p) => {

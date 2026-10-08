@@ -42,15 +42,15 @@ export function initials(name: string) {
 }
 
 /**
- * Trigger a download for a file record. Opens its URL in a new tab when one is
- * set; otherwise tells the user storage isn't connected yet — no dead `#` link.
+ * Open a file record at the link it lives behind. Callers only render the
+ * control when a link exists, so the guard is a backstop, not a feature.
  */
 export function downloadFile(file: { name: string; url?: string }) {
   if (file.url) {
     window.open(file.url, '_blank', 'noopener,noreferrer');
     return;
   }
-  toast.info(`“${file.name}” will download once file storage is connected.`);
+  toast.error(`“${file.name}” has no link attached.`);
 }
 
 /** "in 6 days" / "3 days ago" / "today", relative to now. */

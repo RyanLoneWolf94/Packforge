@@ -28,6 +28,7 @@ import {
 import { cn, formatDate } from '@/src/lib/utils';
 import { projectProgress } from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
+import NewProjectModal from '@/src/components/NewProjectModal';
 import type { ProjectStatus, ProjectTask, Subtask, TaskLane } from '@/src/types';
 
 /**
@@ -78,6 +79,7 @@ export default function Projects() {
 
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isNewOpen, setIsNewOpen] = useState(false);
 
   const visibleProjects = useMemo(
     () => projects.filter((p) => showArchived || p.status !== 'archived'),
@@ -174,13 +176,18 @@ export default function Projects() {
     <div className="max-w-[1400px] h-full flex flex-col space-y-6">
       <PageHeader
         title="Projects Workspace"
-        subtitle="Internal task board. Client-facing phases live in the tracker."
+        subtitle="Plan and move the work behind each project."
         actions={
-          <RouterLink to="/admin/tracker">
-            <Button variant="secondary" icon={GaugeCircle}>
-              Open Tracker
+          <>
+            <RouterLink to="/admin/tracker">
+              <Button variant="secondary" icon={GaugeCircle}>
+                Open Tracker
+              </Button>
+            </RouterLink>
+            <Button icon={Plus} onClick={() => setIsNewOpen(true)}>
+              New Project
             </Button>
-          </RouterLink>
+          </>
         }
       />
 
@@ -189,11 +196,11 @@ export default function Projects() {
           <EmptyState
             icon={FolderOpen}
             title="No projects yet"
-            description="Projects are created in the tracker, where picking a package seeds their phases."
+            description="Start a project from a blueprint and its phases, deliverables and timeline are seeded for you."
             action={
-              <RouterLink to="/admin/tracker">
-                <Button icon={Plus}>Go to Tracker</Button>
-              </RouterLink>
+              <Button icon={Plus} onClick={() => setIsNewOpen(true)}>
+                New Project
+              </Button>
             }
           />
         </Card>
@@ -522,6 +529,12 @@ export default function Projects() {
           </div>
         </div>
       )}
+
+      <NewProjectModal
+        open={isNewOpen}
+        onClose={() => setIsNewOpen(false)}
+        onCreated={(id) => setSelectedId(id)}
+      />
 
       <Modal
         open={Boolean(taskModal)}

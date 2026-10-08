@@ -93,7 +93,7 @@ export default function Clients() {
     <div className="max-w-[1400px] space-y-6">
       <PageHeader
         title="Clients"
-        subtitle="Each client gets their own portal link, scoped to their work."
+        subtitle="Contacts, engagements and portal links."
         actions={
           <Button icon={Plus} onClick={openAdd}>
             New Client

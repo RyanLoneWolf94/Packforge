@@ -98,7 +98,7 @@ export default function Files() {
     <div className="max-w-[1400px] space-y-6">
       <PageHeader
         title="Files"
-        subtitle="Toggle the eye to control what each client sees in their portal."
+        subtitle="Deliverables and working files, and who can see each one."
         actions={
           <Button icon={Plus} onClick={() => setIsOpen(true)}>
             Add File
@@ -203,13 +203,23 @@ export default function Files() {
                 >
                   {file.sharedWithClient ? <Eye size={16} /> : <EyeOff size={16} />}
                 </button>
-                <button
-                  onClick={() => downloadFile(file)}
-                  className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors"
-                  aria-label={`Download ${file.name}`}
-                >
-                  <Download size={16} />
-                </button>
+                {file.url ? (
+                  <button
+                    onClick={() => downloadFile(file)}
+                    className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors"
+                    aria-label={`Open ${file.name}`}
+                    title="Open file"
+                  >
+                    <Download size={16} />
+                  </button>
+                ) : (
+                  <span
+                    className="p-2 text-ink-faint/40 cursor-default"
+                    title="No link attached to this file"
+                  >
+                    <Download size={16} />
+                  </span>
+                )}
                 <button
                   onClick={() => {
                     remove('files', file.id);
@@ -230,7 +240,7 @@ export default function Files() {
         open={isOpen}
         onClose={() => setIsOpen(false)}
         title="Add File"
-        subtitle="Registers a file record. Storage lands with the backend."
+        subtitle="Point Packforge at where the file lives, and choose who sees it."
         width="max-w-lg"
         footer={
           <>

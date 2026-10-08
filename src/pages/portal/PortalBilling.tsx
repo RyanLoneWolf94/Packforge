@@ -325,13 +325,15 @@ export function PortalFiles() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => downloadFile(file)}
-                        className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors shrink-0"
-                        aria-label={`Download ${file.name}`}
-                      >
-                        <Download size={18} />
-                      </button>
+                      {file.url ? (
+                        <button
+                          onClick={() => downloadFile(file)}
+                          className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors shrink-0"
+                          aria-label={`Open ${file.name}`}
+                        >
+                          <Download size={18} />
+                        </button>
+                      ) : null}
                     </div>
                   ))}
               </Card>
@@ -352,7 +354,7 @@ export function PortalContracts() {
   const [signingOpen, setSigningOpen] = useState(false);
 
   const rows = contracts
-    .filter((c) => c.clientId === client.id)
+    .filter((c) => c.clientId === client.id && c.status !== 'draft')
     .sort((a, b) => b.expires.localeCompare(a.expires));
 
   // Keep the open contract in sync after signing, so the modal reflects it.

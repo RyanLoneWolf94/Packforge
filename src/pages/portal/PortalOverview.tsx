@@ -33,7 +33,7 @@ export default function PortalOverview() {
     .reduce((sum, i) => sum + i.amount, 0);
   const openQuotes = quotes.filter((q) => q.clientId === client.id && q.status === 'sent');
   const sharedFiles = files.filter((f) => f.clientId === client.id && f.sharedWithClient);
-  const myContracts = contracts.filter((c) => c.clientId === client.id);
+  const myContracts = contracts.filter((c) => c.clientId === client.id && c.status !== 'draft');
 
   const engagementValue = projects.reduce((sum, p) => sum + projectBudget(p), 0);
 

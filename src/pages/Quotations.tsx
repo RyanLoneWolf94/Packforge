@@ -4,12 +4,14 @@ import {
   CheckCircle2,
   Download,
   Edit2,
+  FileSignature,
   LayoutTemplate,
   Plus,
   Save,
   ScrollText,
   Send,
   Trash2,
+  Wand2,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -24,6 +26,7 @@ import {
   Select,
   StatCard,
   StatusPill,
+  Textarea,
 } from '@/src/components/ui';
 import {
   MilestoneEditor,
@@ -31,6 +34,7 @@ import {
   milestonesTotal,
   newMilestone,
 } from '@/src/components/MilestoneEditor';
+import { STUDIO } from '@/src/brand';
 import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { quoteTotal } from '@/src/lib/finance';
 import { downloadQuotePdf } from '@/src/lib/pdf';
@@ -63,6 +67,10 @@ type FormState = {
   status: QuoteStatus;
   milestones: QuoteMilestone[];
   blueprintId: string;
+  attachContract: boolean;
+  contractTitle: string;
+  contractExpires: string;
+  contractBody: string;
 };
 
 const blankForm = (count: number): FormState => ({
@@ -74,7 +82,56 @@ const blankForm = (count: number): FormState => ({
   status: 'draft',
   milestones: [newMilestone()],
   blueprintId: '',
+  attachContract: false,
+  contractTitle: '',
+  contractExpires: '',
+  contractBody: '',
 });
+
+/**
+ * A starting set of terms built from the quote itself, so a contract can be
+ * prepared alongside the pricing instead of written from scratch later. Every
+ * line stays editable before saving.
+ */
+function draftTerms(input: {
+  title: string;
+  clientName: string;
+  milestones: QuoteMilestone[];
+  total: number;
+  days: number;
+}): string {
+  const scope = input.milestones
+    .map((m, i) => {
+      const lines = m.tasks.filter((t) => t.title.trim()).map((t) => `   - ${t.title.trim()}`);
+      return [`${i + 1}.${i + 1} ${m.title}`, ...lines].join('\n');
+    })
+    .join('\n');
+
+  return [
+    '1. SCOPE OF WORK',
+    `${STUDIO.name} ("the Studio") will deliver the following for ${input.clientName} ("the Client"), as scoped in this engagement:`,
+    '',
+    scope,
+    '',
+    '2. FEES AND PAYMENT',
+    `Total engagement value is ${formatCurrency(input.total)} USD. Invoices are due within fourteen (14) days of issue.`,
+    '',
+    '3. TIMELINE',
+    `Delivery is scheduled over approximately ${input.days} days from commencement. Delays in client feedback or inputs extend delivery by the equivalent period.`,
+    '',
+    '4. REVISIONS',
+    'Each phase includes two rounds of revision within the agreed direction. A change of direction after written sign-off is treated as new work and quoted separately.',
+    '',
+    '5. INTELLECTUAL PROPERTY',
+    'Ownership of all final approved deliverables transfers to the Client on receipt of final payment. The Studio retains the right to display the work in its portfolio.',
+    '',
+    '6. CONFIDENTIALITY',
+    'Both parties will keep commercially sensitive information disclosed during the engagement confidential.',
+    '',
+    '7. TERMINATION',
+    'Either party may terminate with fourteen (14) days written notice. Work completed to that date remains payable.',
+  ].join('\n');
+}
 
 /**
  * A quote with no blueprint still converts into a real tracker: each milestone
@@ -121,6 +178,10 @@ export default function Quotations() {
       status: quote.status,
       milestones: quote.milestones,
       blueprintId: quote.blueprintId ?? '',
+      attachContract: false,
+      contractTitle: '',
+      contractExpires: '',
+      contractBody: '',
     });
     setIsOpen(true);
   };
@@ -197,6 +258,24 @@ export default function Quotations() {
       toast.success('Quote updated');
     } else {
       add('quotes', payload);
+
+      // Prepare the agreement at the same time. It starts as a draft, so it
+      // stays out of the client's portal until you're ready to send it.
+      if (form.attachContract) {
+        const total = milestonesTotal(payload.milestones);
+        add('contracts', {
+          title: form.contractTitle.trim() || `Service Agreement — ${payload.title}`,
+          clientId: payload.clientId,
+          amount: total,
+          expires:
+            form.contractExpires ||
+            new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10),
+          status: 'draft',
+          body: form.contractBody,
+          autoRemind: false,
+        });
+        toast.success('Contract drafted — review it under Contracts');
+      }
       toast.success('Quote created');
     }
     setIsOpen(false);
@@ -511,6 +590,103 @@ export default function Quotations() {
             >
               <Save size={13} /> Save this breakdown as a blueprint for next time
             </button>
+          ) : null}
+
+          {/* Prepare the agreement alongside the pricing, while the scope is
+              fresh — it saves as a draft, invisible to the client until sent. */}
+          {!editingId ? (
+            <div className="border-t border-line pt-4 space-y-3">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.attachContract}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    const client = clients.find((c) => c.id === form.clientId);
+                    setForm({
+                      ...form,
+                      attachContract: on,
+                      contractTitle:
+                        form.contractTitle ||
+                        `Service Agreement — ${form.title.trim() || 'Engagement'}`,
+                      contractBody:
+                        form.contractBody ||
+                        (on
+                          ? draftTerms({
+                              title: form.title.trim(),
+                              clientName: client?.name ?? 'the Client',
+                              milestones: form.milestones,
+                              total: milestonesTotal(form.milestones),
+                              days: Number(form.timelineDays) || 28,
+                            })
+                          : ''),
+                    });
+                  }}
+                  className="mt-0.5 w-4 h-4 rounded border-line accent-orange cursor-pointer"
+                />
+                <span>
+                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                    <FileSignature size={14} className="text-purple" /> Attach a contract
+                  </span>
+                  <span className="block text-[11.5px] text-ink-soft mt-0.5">
+                    Drafts an agreement from this scope and pricing. Saved as a draft — the
+                    client sees it only once you send it.
+                  </span>
+                </span>
+              </label>
+
+              {form.attachContract ? (
+                <div className="space-y-3 pl-6">
+                  <div className="grid grid-cols-[1fr_170px] gap-3">
+                    <Field label="Contract title">
+                      <Input
+                        value={form.contractTitle}
+                        onChange={(e) => setForm({ ...form, contractTitle: e.target.value })}
+                        placeholder="Service Agreement"
+                      />
+                    </Field>
+                    <Field label="Valid until">
+                      <Input
+                        type="date"
+                        value={form.contractExpires}
+                        onChange={(e) => setForm({ ...form, contractExpires: e.target.value })}
+                      />
+                    </Field>
+                  </div>
+                  <Field
+                    label="Terms"
+                    hint="Generated from the breakdown above — edit freely"
+                  >
+                    <Textarea
+                      rows={10}
+                      value={form.contractBody}
+                      onChange={(e) => setForm({ ...form, contractBody: e.target.value })}
+                      className="leading-relaxed text-[12.5px]"
+                    />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const client = clients.find((c) => c.id === form.clientId);
+                      setForm({
+                        ...form,
+                        contractBody: draftTerms({
+                          title: form.title.trim(),
+                          clientName: client?.name ?? 'the Client',
+                          milestones: form.milestones,
+                          total: milestonesTotal(form.milestones),
+                          days: Number(form.timelineDays) || 28,
+                        }),
+                      });
+                      toast.success('Terms rebuilt from the current breakdown');
+                    }}
+                    className="text-[11px] font-bold text-orange hover:text-orange-deep flex items-center gap-1"
+                  >
+                    <Wand2 size={12} /> Rebuild terms from the breakdown
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </form>
       </Modal>

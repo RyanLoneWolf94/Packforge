@@ -115,7 +115,7 @@ export default function Campaigns() {
     <div className="max-w-[1200px] space-y-6">
       <PageHeader
         title="Campaigns"
-        subtitle="Plan email, WhatsApp and social pushes. Sending activates with the backend."
+        subtitle="Plan and track email, WhatsApp and social pushes."
         actions={
           <Button icon={Plus} onClick={openAdd}>
             New Campaign

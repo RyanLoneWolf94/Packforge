@@ -240,7 +240,7 @@ export function PhaseTracker({
                 </a>
               ) : (
                 <span className="text-[13px] text-ink-faint italic">
-                  Files not yet available
+                  No files linked yet
                 </span>
               )}
             </div>

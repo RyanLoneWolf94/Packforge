@@ -71,7 +71,7 @@ export default function Newsletters() {
     <div className="max-w-[1200px] space-y-6">
       <PageHeader
         title="Newsletters"
-        subtitle="Draft and schedule issues. Delivery connects with the backend."
+        subtitle="Draft and schedule issues for your audience."
         actions={
           <Button icon={Plus} onClick={openAdd}>
             New Issue
