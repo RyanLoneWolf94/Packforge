@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, Edit2, Plus, Target, Trash2, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, PencilSimple, Plus, Target, Trash, TrendUp } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -132,7 +132,7 @@ export default function Leads() {
           label="Open Leads"
         />
         <StatCard
-          icon={TrendingUp}
+          icon={TrendUp}
           tone="orange"
           value={formatCurrency(openPipeline)}
           label="Pipeline Value"
@@ -189,7 +189,7 @@ export default function Leads() {
                             className="p-1 text-ink-faint hover:text-purple rounded"
                             aria-label="Edit"
                           >
-                            <Edit2 size={12} />
+                            <PencilSimple size={12} />
                           </button>
                           <button
                             onClick={() => {
@@ -199,7 +199,7 @@ export default function Leads() {
                             className="p-1 text-ink-faint hover:text-red rounded"
                             aria-label="Delete"
                           >
-                            <Trash2 size={12} />
+                            <Trash size={12} />
                           </button>
                         </div>
                       </div>

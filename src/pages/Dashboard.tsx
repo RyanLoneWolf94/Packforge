@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  CalendarClock,
-  DollarSign,
-  FolderKanban,
-  Users,
-} from 'lucide-react';
+import { ArrowUpRight, CalendarCheck, CurrencyDollar, Kanban, Users, Warning } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import {
   Card,
@@ -73,21 +66,21 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
-          icon={FolderKanban}
+          icon={Kanban}
           tone="purple"
           value={live.length}
           label="Active Projects"
           hint={`${projects.length} total`}
         />
         <StatCard
-          icon={DollarSign}
+          icon={CurrencyDollar}
           tone="orange"
           value={formatCurrency(pipelineValue)}
           label="Committed Pipeline"
           hint={`${formatCurrency(Math.round(earned))} earned to date`}
         />
         <StatCard
-          icon={CalendarClock}
+          icon={CalendarCheck}
           tone={overdueCount > 0 ? 'red' : 'gold'}
           value={formatCurrency(outstanding)}
           label="Outstanding Invoices"
@@ -117,7 +110,7 @@ export default function Dashboard() {
 
           {live.length === 0 ? (
             <EmptyState
-              icon={FolderKanban}
+              icon={Kanban}
               title="No active projects"
               description="Create a project to start tracking phases and deliverables."
             />
@@ -191,7 +184,7 @@ export default function Dashboard() {
                     to={`/admin/tracker/${project.id}`}
                     className="flex gap-3 items-start p-3 rounded-lg bg-surface-2 hover:bg-orange-dim transition-colors"
                   >
-                    <AlertTriangle
+                    <Warning
                       size={15}
                       className={cn(
                         'shrink-0 mt-0.5',

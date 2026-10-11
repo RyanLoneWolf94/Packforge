@@ -1,16 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  BarChart3,
-  Edit2,
-  Mail,
-  Megaphone,
-  MessageCircle,
-  Plus,
-  Search,
-  Send,
-  Share2,
-  Trash2,
-} from 'lucide-react';
+import { ChartBar, ChatCircle, Envelope, MagnifyingGlass, Megaphone, PaperPlaneTilt, PencilSimple, Plus, ShareNetwork, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -31,7 +20,7 @@ import type { Campaign, CampaignChannel, CampaignStatus } from '@/src/types';
 const CHANNELS: CampaignChannel[] = ['email', 'whatsapp', 'social'];
 const STATUSES: CampaignStatus[] = ['draft', 'scheduled', 'active', 'completed'];
 
-const CHANNEL_ICON = { email: Mail, whatsapp: MessageCircle, social: Share2 } as const;
+const CHANNEL_ICON = { email: Envelope, whatsapp: ChatCircle, social: ShareNetwork } as const;
 
 const STATUS_TONE: Record<CampaignStatus, 'positive' | 'warning' | 'brand' | 'neutral'> = {
   active: 'positive',
@@ -125,20 +114,20 @@ export default function Campaigns() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard icon={Megaphone} tone="purple" value={campaigns.length} label="Campaigns" />
-        <StatCard icon={Send} tone="orange" value={active} label="Active Now" />
-        <StatCard icon={BarChart3} tone="gold" value={totalSent.toLocaleString()} label="Total Sent" />
+        <StatCard icon={PaperPlaneTilt} tone="orange" value={active} label="Active Now" />
+        <StatCard icon={ChartBar} tone="gold" value={totalSent.toLocaleString()} label="Total Sent" />
       </div>
 
       <Card className="p-4">
         <div className="relative max-w-sm">
-          <Search
+          <MagnifyingGlass
             size={15}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"
           />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search campaigns…"
+            placeholder="MagnifyingGlass campaigns…"
             className="pl-10"
           />
         </div>
@@ -212,7 +201,7 @@ export default function Campaigns() {
                               title="Schedule"
                               className="p-1.5 text-ink-faint hover:text-positive hover:bg-positive-dim rounded transition-colors"
                             >
-                              <Send size={15} />
+                              <PaperPlaneTilt size={15} />
                             </button>
                           ) : null}
                           <button
@@ -220,7 +209,7 @@ export default function Campaigns() {
                             title="Edit"
                             className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                           >
-                            <Edit2 size={15} />
+                            <PencilSimple size={15} />
                           </button>
                           <button
                             onClick={() => {
@@ -230,7 +219,7 @@ export default function Campaigns() {
                             title="Delete"
                             className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                           >
-                            <Trash2 size={15} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </td>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Receipt, Trash2, Wallet } from 'lucide-react';
+import { Plus, Receipt, Trash, Wallet } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -156,7 +156,7 @@ export default function Expenses() {
                       className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors opacity-0 group-hover:opacity-100"
                       aria-label={`Delete ${expense.title}`}
                     >
-                      <Trash2 size={14} />
+                      <Trash size={14} />
                     </button>
                   </div>
                 </div>

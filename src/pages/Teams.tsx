@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Edit2, Mail, Plus, Trash2, Users } from 'lucide-react';
+import { Clock, Envelope, PencilSimple, Plus, Trash, Users } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -143,7 +143,7 @@ export default function Teams() {
                   className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                   aria-label="Edit"
                 >
-                  <Edit2 size={14} />
+                  <PencilSimple size={14} />
                 </button>
                 <button
                   onClick={() => {
@@ -153,7 +153,7 @@ export default function Teams() {
                   className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                   aria-label="Remove"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} />
                 </button>
               </div>
 
@@ -178,7 +178,7 @@ export default function Teams() {
                 href={`mailto:${member.email}`}
                 className="flex items-center gap-2 text-[12.5px] text-ink-soft hover:text-purple transition-colors truncate"
               >
-                <Mail size={13} className="shrink-0" />
+                <Envelope size={13} className="shrink-0" />
                 <span className="truncate">{member.email}</span>
               </a>
 

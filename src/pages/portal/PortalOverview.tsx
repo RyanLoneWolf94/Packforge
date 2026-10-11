@@ -1,12 +1,4 @@
-import {
-  ArrowRight,
-  Briefcase,
-  CalendarDays,
-  Download,
-  FileSignature,
-  Receipt,
-  ScrollText,
-} from 'lucide-react';
+import { ArrowRight, Briefcase, CalendarBlank, DownloadSimple, Receipt, Scroll, Signature } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import { ActionItems, TrackerSummary } from '@/src/components/tracker/PhaseTracker';
 import { Card, EmptyState, MetaPill, StatCard, StatusPill } from '@/src/components/ui';
@@ -64,7 +56,7 @@ export default function PortalOverview() {
           to={`${base}/progress`}
         />
         <StatCard
-          icon={CalendarDays}
+          icon={CalendarBlank}
           tone="orange"
           value={formatCurrency(engagementValue)}
           label="Engagement Value"
@@ -80,7 +72,7 @@ export default function PortalOverview() {
           to={`${base}/invoices`}
         />
         <StatCard
-          icon={Download}
+          icon={DownloadSimple}
           tone="neutral"
           value={sharedFiles.length}
           label="Files Shared"
@@ -122,7 +114,7 @@ export default function PortalOverview() {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <MetaPill>
-                      <CalendarDays size={13} /> Target {formatDate(project.targetDelivery)}
+                      <CalendarBlank size={13} /> Target {formatDate(project.targetDelivery)}
                     </MetaPill>
                     <MetaPill>
                       Next up: <b className="text-ink">{phase?.name ?? 'Handover'}</b>
@@ -151,7 +143,7 @@ export default function PortalOverview() {
         />
         <QuickCard
           to={`${base}/quotes`}
-          icon={ScrollText}
+          icon={Scroll}
           title="Quotes"
           line={
             openQuotes.length > 0
@@ -162,7 +154,7 @@ export default function PortalOverview() {
         />
         <QuickCard
           to={`${base}/contracts`}
-          icon={FileSignature}
+          icon={Signature}
           title="Contracts"
           line={
             myContracts.length === 0

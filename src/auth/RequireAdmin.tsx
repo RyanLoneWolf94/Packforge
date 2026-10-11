@@ -1,4 +1,4 @@
-import { ShieldAlert } from 'lucide-react';
+import { ShieldWarning } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { Button, Card } from '@/src/components/ui';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
@@ -47,7 +47,7 @@ export default function RequireAdmin({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-paper flex items-center justify-center p-6">
         <Card className="max-w-md w-full p-7 text-center">
           <div className="w-12 h-12 rounded-full bg-red-dim text-red flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert size={22} />
+            <ShieldWarning size={22} />
           </div>
           <h1 className="disp text-lg font-extrabold text-ink">Not authorised</h1>
           <p className="text-sm text-ink-soft mt-2">

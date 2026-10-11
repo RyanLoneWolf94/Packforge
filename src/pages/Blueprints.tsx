@@ -1,17 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  CalendarRange,
-  Copy,
-  Edit2,
-  FileText,
-  Layers,
-  LayoutTemplate,
-  Plus,
-  Trash2,
-  Wand2,
-  X,
-} from 'lucide-react';
+import { CalendarDots, Copy, FileText, Layout, MagicWand, PencilSimple, Plus, Stack, Trash, X } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -258,7 +247,7 @@ export default function Blueprints() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState
-            icon={LayoutTemplate}
+            icon={Layout}
             title="No blueprints yet"
             description="Save the way you sell and deliver each kind of work once, then reuse it for every quote and project."
             action={
@@ -290,14 +279,14 @@ export default function Blueprints() {
                       aria-label="Edit"
                       className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                     >
-                      <Edit2 size={14} />
+                      <PencilSimple size={14} />
                     </button>
                     <button
                       onClick={() => setConfirmDelete(bp)}
                       aria-label="Delete"
                       className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                     >
-                      <Trash2 size={14} />
+                      <Trash size={14} />
                     </button>
                   </div>
                 </div>
@@ -326,7 +315,7 @@ export default function Blueprints() {
                   >
                     Quote from this
                   </Button>
-                  <Button size="sm" variant="ghost" icon={Edit2} onClick={() => openEdit(bp)}>
+                  <Button size="sm" variant="ghost" icon={PencilSimple} onClick={() => openEdit(bp)}>
                     Edit
                   </Button>
                 </div>
@@ -412,7 +401,7 @@ export default function Blueprints() {
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <Layers size={15} className="text-purple" />
+                <Stack size={15} className="text-purple" />
                 <span className="text-xs font-bold text-ink">Delivery workflow</span>
                 <span className="text-[11px] text-ink-faint">— seeds the project tracker</span>
               </div>
@@ -424,7 +413,7 @@ export default function Blueprints() {
                 }}
                 className="text-[11px] font-bold text-orange hover:text-orange-deep flex items-center gap-1"
               >
-                <Wand2 size={12} /> Build from breakdown
+                <MagicWand size={12} /> Build from breakdown
               </button>
             </div>
 
@@ -487,7 +476,7 @@ export default function Blueprints() {
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <CalendarRange size={15} className="text-purple" />
+                <CalendarDots size={15} className="text-purple" />
                 <span className="text-xs font-bold text-ink">Client timeline</span>
                 <span className="text-[11px] text-ink-faint">— what the client sees in their portal</span>
               </div>
@@ -502,7 +491,7 @@ export default function Blueprints() {
                 }}
                 className="text-[11px] font-bold text-orange hover:text-orange-deep flex items-center gap-1"
               >
-                <Wand2 size={12} /> Build from workflow
+                <MagicWand size={12} /> Build from workflow
               </button>
             </div>
 

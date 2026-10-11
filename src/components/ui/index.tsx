@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X } from '@phosphor-icons/react';
 import { useEffect, type ComponentType, type ReactNode } from 'react';
 import { cn } from '@/src/lib/utils';
 
@@ -134,7 +134,7 @@ export function StatCard({
           STAT_TONES[tone],
         )}
       >
-        <Icon size={22} strokeWidth={2.5} />
+        <Icon size={22} />
       </div>
       <div className="min-w-0">
         <h3 className="text-3xl font-extrabold text-ink tracking-tight leading-none mb-1">
@@ -261,7 +261,6 @@ export function ProgressRing({
           r={radius}
           fill="none"
           stroke="var(--color-surface-2)"
-          strokeWidth={stroke}
         />
         <circle
           cx={size / 2}
@@ -269,7 +268,6 @@ export function ProgressRing({
           r={radius}
           fill="none"
           stroke={color}
-          strokeWidth={stroke}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"

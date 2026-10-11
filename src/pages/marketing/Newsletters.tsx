@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit2, MailOpen, Plus, Send, Trash2, Users } from 'lucide-react';
+import { EnvelopeOpen, PaperPlaneTilt, PencilSimple, Plus, Trash, Users } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -80,8 +80,8 @@ export default function Newsletters() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatCard icon={MailOpen} tone="purple" value={newsletters.length} label="Total Issues" />
-        <StatCard icon={Send} tone="positive" value={published} label="Published" />
+        <StatCard icon={EnvelopeOpen} tone="purple" value={newsletters.length} label="Total Issues" />
+        <StatCard icon={PaperPlaneTilt} tone="positive" value={published} label="Published" />
         <StatCard
           icon={Users}
           tone="neutral"
@@ -93,7 +93,7 @@ export default function Newsletters() {
       {newsletters.length === 0 ? (
         <Card>
           <EmptyState
-            icon={MailOpen}
+            icon={EnvelopeOpen}
             title="No newsletters yet"
             description="Draft your first issue to start building your audience."
             action={
@@ -115,7 +115,7 @@ export default function Newsletters() {
                     className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                     aria-label="Edit"
                   >
-                    <Edit2 size={14} />
+                    <PencilSimple size={14} />
                   </button>
                   <button
                     onClick={() => {
@@ -125,7 +125,7 @@ export default function Newsletters() {
                     className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                     aria-label="Delete"
                   >
-                    <Trash2 size={14} />
+                    <Trash size={14} />
                   </button>
                 </div>
               </div>
@@ -152,7 +152,7 @@ export default function Newsletters() {
                     }}
                     className="text-sm font-bold text-purple hover:text-orange flex items-center gap-1 transition-colors"
                   >
-                    Publish <Send size={14} />
+                    Publish <PaperPlaneTilt size={14} />
                   </button>
                 ) : null}
               </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Clock, Pause, Play, Plus, Square, Trash2 } from 'lucide-react';
+import { Clock, Pause, Play, Plus, Square, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -208,7 +208,7 @@ export default function TimeTracking() {
                   className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors opacity-0 group-hover:opacity-100"
                   aria-label="Delete entry"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} />
                 </button>
               </div>
             </div>

@@ -1,18 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Download,
-  GaugeCircle,
-  FileSignature,
-  FileText,
-  FolderArchive,
-  PenLine,
-  Receipt,
-  ScrollText,
-} from 'lucide-react';
+import { Archive, CaretDown, CheckCircle, Clock, DownloadSimple, FileText, Gauge, PencilSimpleLine, Receipt, Scroll, Signature } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Button, Card, EmptyState, Modal, PageHeader, StatusPill } from '@/src/components/ui';
 import SignatureModal, { SignaturePreview } from '@/src/components/SignatureModal';
@@ -108,10 +96,10 @@ export function PortalInvoices() {
                   </div>
                   <button
                     onClick={() => downloadInvoicePdf({ invoice, client, project, settings })}
-                    title={`Download ${invoice.number}`}
+                    title={`DownloadSimple ${invoice.number}`}
                     className="p-2 text-ink-faint hover:text-orange hover:bg-orange-dim rounded-lg transition-colors"
                   >
-                    <Download size={18} />
+                    <DownloadSimple size={18} />
                   </button>
                 </div>
               </div>
@@ -151,7 +139,7 @@ export function PortalQuotes() {
 
       {rows.length === 0 ? (
         <Card>
-          <EmptyState icon={ScrollText} title="No quotes yet" />
+          <EmptyState icon={Scroll} title="No quotes yet" />
         </Card>
       ) : (
         <div className="space-y-5">
@@ -195,7 +183,7 @@ export function PortalQuotes() {
                           className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-line/40 rounded-[10px] transition-colors"
                         >
                           <span className="flex items-center gap-2 font-bold text-sm text-ink">
-                            <ChevronDown
+                            <CaretDown
                               size={15}
                               className={cn(
                                 'text-ink-faint transition-transform',
@@ -233,7 +221,7 @@ export function PortalQuotes() {
                   {awaiting ? (
                     <>
                       <Button
-                        icon={CheckCircle2}
+                        icon={CheckCircle}
                         onClick={() => {
                           update('quotes', quote.id, { status: 'accepted' });
                           toast.success('Quote accepted — we have been notified');
@@ -254,16 +242,16 @@ export function PortalQuotes() {
                   ) : null}
                   {quote.convertedProjectId && projectFor({ projectId: quote.convertedProjectId }) ? (
                     <Link to={`/portal/${client.portalToken}/progress`}>
-                      <Button icon={GaugeCircle}>Track this project</Button>
+                      <Button icon={Gauge}>Track this project</Button>
                     </Link>
                   ) : null}
                   <Button
                     variant="ghost"
-                    icon={Download}
+                    icon={DownloadSimple}
                     className="ml-auto"
                     onClick={() => downloadQuotePdf({ quote, client, settings })}
                   >
-                    Download PDF
+                    DownloadSimple PDF
                   </Button>
                 </div>
               </Card>
@@ -293,7 +281,7 @@ export function PortalFiles() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState
-            icon={FolderArchive}
+            icon={Archive}
             title="No files shared yet"
             description="Deliverables will appear here as each phase completes."
           />
@@ -331,7 +319,7 @@ export function PortalFiles() {
                           className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors shrink-0"
                           aria-label={`Open ${file.name}`}
                         >
-                          <Download size={18} />
+                          <DownloadSimple size={18} />
                         </button>
                       ) : null}
                     </div>
@@ -371,7 +359,7 @@ export function PortalContracts() {
 
       {rows.length === 0 ? (
         <Card>
-          <EmptyState icon={FileSignature} title="No contracts on file" />
+          <EmptyState icon={Signature} title="No contracts on file" />
         </Card>
       ) : (
         <Card className="divide-y divide-line">
@@ -392,7 +380,7 @@ export function PortalContracts() {
                     )}
                   >
                     {contract.status === 'signed' ? (
-                      <CheckCircle2 size={17} />
+                      <CheckCircle size={17} />
                     ) : (
                       <Clock size={17} />
                     )}
@@ -456,7 +444,7 @@ export function PortalContracts() {
               Close
             </Button>
             {awaitingSignature ? (
-              <Button icon={PenLine} onClick={() => setSigningOpen(true)}>
+              <Button icon={PencilSimpleLine} onClick={() => setSigningOpen(true)}>
                 Sign this agreement
               </Button>
             ) : null}

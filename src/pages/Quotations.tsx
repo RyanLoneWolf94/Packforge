@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  ArrowUpRight,
-  CheckCircle2,
-  Download,
-  Edit2,
-  FileSignature,
-  LayoutTemplate,
-  Plus,
-  Save,
-  ScrollText,
-  Send,
-  Trash2,
-  Wand2,
-} from 'lucide-react';
+import { ArrowUpRight, CheckCircle, DownloadSimple, FloppyDisk, Layout, MagicWand, PaperPlaneTilt, PencilSimple, Plus, Scroll, Signature, Trash } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -212,7 +199,7 @@ export default function Quotations() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, blueprints]);
 
-  /* Save the current breakdown back to the library for next time. */
+  /* FloppyDisk the current breakdown back to the library for next time. */
   const [saveAsOpen, setSaveAsOpen] = useState(false);
   const [saveAs, setSaveAs] = useState({ title: '', category: 'Branding' });
   const saveAsBlueprint = (e: React.FormEvent) => {
@@ -322,15 +309,15 @@ export default function Quotations() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatCard icon={ScrollText} tone="purple" value={quotes.length} label="Total Quotes" />
+        <StatCard icon={Scroll} tone="purple" value={quotes.length} label="Total Quotes" />
         <StatCard
-          icon={Send}
+          icon={PaperPlaneTilt}
           tone="gold"
           value={formatCurrency(pipeline)}
           label="Awaiting Decision"
         />
         <StatCard
-          icon={CheckCircle2}
+          icon={CheckCircle}
           tone="positive"
           value={formatCurrency(won)}
           label="Accepted Value"
@@ -340,7 +327,7 @@ export default function Quotations() {
       {quotes.length === 0 ? (
         <Card>
           <EmptyState
-            icon={ScrollText}
+            icon={Scroll}
             title="No quotes yet"
             description="Build a priced breakdown and send it to a client's portal."
             action={
@@ -404,13 +391,13 @@ export default function Quotations() {
                 {quote.status === 'draft' ? (
                   <Button
                     size="sm"
-                    icon={Send}
+                    icon={PaperPlaneTilt}
                     onClick={() => {
                       update('quotes', quote.id, { status: 'sent' });
                       toast.success("Quote sent — it's now in the client's portal");
                     }}
                   >
-                    Send to Client
+                    PaperPlaneTilt to Client
                   </Button>
                 ) : null}
                 {quote.status === 'accepted' && !quote.convertedProjectId ? (
@@ -431,24 +418,24 @@ export default function Quotations() {
                 <div className="flex items-center gap-1 ml-auto">
                   <button
                     onClick={() => downloadQuotePdf({ quote, client: clientFor(quote), settings })}
-                    title="Download PDF"
+                    title="DownloadSimple PDF"
                     className="p-2 text-ink-faint hover:text-orange hover:bg-orange-dim rounded-lg transition-colors"
                   >
-                    <Download size={15} />
+                    <DownloadSimple size={15} />
                   </button>
                   <button
                     onClick={() => openEdit(quote)}
                     title="Edit"
                     className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors"
                   >
-                    <Edit2 size={15} />
+                    <PencilSimple size={15} />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(quote)}
                     title="Delete"
                     className="p-2 text-ink-faint hover:text-red hover:bg-red-dim rounded-lg transition-colors"
                   >
-                    <Trash2 size={15} />
+                    <Trash size={15} />
                   </button>
                 </div>
               </div>
@@ -469,7 +456,7 @@ export default function Quotations() {
               Cancel
             </Button>
             <Button type="submit" form="quote-form">
-              {editingId ? 'Save Changes' : 'Create Quote'}
+              {editingId ? 'FloppyDisk Changes' : 'Create Quote'}
             </Button>
           </>
         }
@@ -534,7 +521,7 @@ export default function Quotations() {
               <Button
                 type="button"
                 variant="secondary"
-                icon={LayoutTemplate}
+                icon={Layout}
                 onClick={() => navigate('/admin/blueprints')}
                 title="Manage blueprints"
               >
@@ -588,7 +575,7 @@ export default function Quotations() {
               }}
               className="text-xs font-bold text-purple hover:text-orange flex items-center gap-1.5"
             >
-              <Save size={13} /> Save this breakdown as a blueprint for next time
+              <FloppyDisk size={13} /> FloppyDisk this breakdown as a blueprint for next time
             </button>
           ) : null}
 
@@ -626,7 +613,7 @@ export default function Quotations() {
                 />
                 <span>
                   <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                    <FileSignature size={14} className="text-purple" /> Attach a contract
+                    <Signature size={14} className="text-purple" /> Attach a contract
                   </span>
                   <span className="block text-[11.5px] text-ink-soft mt-0.5">
                     Drafts an agreement from this scope and pricing. Saved as a draft — the
@@ -682,7 +669,7 @@ export default function Quotations() {
                     }}
                     className="text-[11px] font-bold text-orange hover:text-orange-deep flex items-center gap-1"
                   >
-                    <Wand2 size={12} /> Rebuild terms from the breakdown
+                    <MagicWand size={12} /> Rebuild terms from the breakdown
                   </button>
                 </div>
               ) : null}
@@ -694,15 +681,15 @@ export default function Quotations() {
       <Modal
         open={saveAsOpen}
         onClose={() => setSaveAsOpen(false)}
-        title="Save as blueprint"
+        title="FloppyDisk as blueprint"
         subtitle="The breakdown becomes reusable; refine its workflow and timeline under Blueprints"
         footer={
           <>
             <Button variant="ghost" onClick={() => setSaveAsOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" form="save-as-form" icon={Save}>
-              Save Blueprint
+            <Button type="submit" form="save-as-form" icon={FloppyDisk}>
+              FloppyDisk Blueprint
             </Button>
           </>
         }

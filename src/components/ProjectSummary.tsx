@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Receipt } from 'lucide-react';
+import { CaretDown, Receipt } from '@phosphor-icons/react';
 import { Card, ProgressBar, StatusPill } from '@/src/components/ui';
 import { cn, formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
 import { projectBudget, projectEarned, projectProgress } from '@/src/lib/tracker';
@@ -87,7 +87,7 @@ export default function ProjectSummary({ project }: { project: Project }) {
         className="w-full flex items-center justify-between gap-3 px-5 py-3 hover:bg-surface-2 transition-colors text-left"
       >
         <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-ink-faint">
-          <ChevronDown
+          <CaretDown
             size={14}
             className={cn('transition-transform', !open && '-rotate-90')}
           />

@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  AlertTriangle,
-  Bell,
-  BellOff,
-  CheckCircle2,
-  Edit2,
-  FileSignature,
-  Mail,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { Bell, BellSlash, CheckCircle, Envelope, PencilSimple, Plus, Signature, Trash, Warning } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -138,19 +128,19 @@ export default function Contracts() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard
-          icon={FileSignature}
+          icon={Signature}
           tone="purple"
           value={contracts.length}
           label="Total Contracts"
         />
         <StatCard
-          icon={CheckCircle2}
+          icon={CheckCircle}
           tone="positive"
           value={contracts.filter((c) => c.status === 'signed').length}
           label="Signed"
         />
         <StatCard
-          icon={AlertTriangle}
+          icon={Warning}
           tone={expiringSoon > 0 ? 'red' : 'neutral'}
           value={expiringSoon}
           label="Needing Attention"
@@ -160,7 +150,7 @@ export default function Contracts() {
       {contracts.length === 0 ? (
         <Card>
           <EmptyState
-            icon={FileSignature}
+            icon={Signature}
             title="No contracts yet"
             description="Create an agreement and it appears in the client's portal."
             action={
@@ -241,7 +231,7 @@ export default function Contracts() {
                         : 'text-ink-faint hover:bg-surface-2',
                     )}
                   >
-                    {contract.autoRemind ? <Bell size={15} /> : <BellOff size={15} />}
+                    {contract.autoRemind ? <Bell size={15} /> : <BellSlash size={15} />}
                   </button>
                   <button
                     onClick={() =>
@@ -250,21 +240,21 @@ export default function Contracts() {
                     title="Send reminder now"
                     className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors"
                   >
-                    <Mail size={15} />
+                    <Envelope size={15} />
                   </button>
                   <button
                     onClick={() => openEdit(contract)}
                     title="Edit"
                     className="p-2 text-ink-faint hover:text-purple hover:bg-purple-dim rounded-lg transition-colors"
                   >
-                    <Edit2 size={15} />
+                    <PencilSimple size={15} />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(contract)}
                     title="Delete"
                     className="p-2 text-ink-faint hover:text-red hover:bg-red-dim rounded-lg transition-colors ml-auto"
                   >
-                    <Trash2 size={15} />
+                    <Trash size={15} />
                   </button>
                 </div>
 
@@ -272,7 +262,7 @@ export default function Contracts() {
                   <Button
                     variant="purple"
                     size="sm"
-                    icon={FileSignature}
+                    icon={Signature}
                     className="w-full mt-3"
                     onClick={() => setSigning(contract)}
                   >

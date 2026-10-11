@@ -1,12 +1,4 @@
-import {
-  CalendarDays,
-  ExternalLink,
-  FolderOpen,
-  Palette,
-  Pencil,
-  Plus,
-  Wallet,
-} from 'lucide-react';
+import { ArrowSquareOut, CalendarBlank, FolderOpen, Palette, PencilSimple, Plus, Wallet } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -102,7 +94,7 @@ export default function ProjectTracker() {
           <>
             {client ? <PortalShareButton token={client.portalToken} /> : null}
             {selected ? (
-              <Button variant="secondary" icon={Pencil} onClick={() => setIsEditOpen(true)}>
+              <Button variant="secondary" icon={PencilSimple} onClick={() => setIsEditOpen(true)}>
                 Edit
               </Button>
             ) : null}
@@ -174,7 +166,7 @@ export default function ProjectTracker() {
                 </MetaPill>
               ) : null}
               <MetaPill>
-                <CalendarDays size={13} /> Started {formatDate(selected.startDate)}
+                <CalendarBlank size={13} /> Started {formatDate(selected.startDate)}
               </MetaPill>
               <MetaPill>
                 Target <b className="text-ink">{formatDate(selected.targetDelivery)}</b>
@@ -193,7 +185,7 @@ export default function ProjectTracker() {
                   target="_blank"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-dim text-purple border border-purple/20 hover:bg-purple hover:text-white transition-colors"
                 >
-                  <ExternalLink size={13} /> Preview client view
+                  <ArrowSquareOut size={13} /> Preview client view
                 </Link>
               ) : null}
             </div>

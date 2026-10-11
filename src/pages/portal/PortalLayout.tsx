@@ -1,14 +1,4 @@
-import {
-  FileSignature,
-  FolderArchive,
-  LayoutDashboard,
-  Mail,
-  MessageCircle,
-  Receipt,
-  ScrollText,
-  ShieldCheck,
-  GaugeCircle,
-} from 'lucide-react';
+import { Archive, ChatCircle, Envelope, Gauge, Receipt, Scroll, ShieldCheck, Signature, SquaresFour } from '@phosphor-icons/react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { Card, EmptyState } from '@/src/components/ui';
 import { Logo } from '@/src/components/Logo';
@@ -25,12 +15,12 @@ import type { Client } from '@/src/types';
  */
 
 const NAV = [
-  { to: '', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: 'progress', label: 'Progress', icon: GaugeCircle },
+  { to: '', label: 'Overview', icon: SquaresFour, end: true },
+  { to: 'progress', label: 'Progress', icon: Gauge },
   { to: 'invoices', label: 'Invoices', icon: Receipt },
-  { to: 'quotes', label: 'Quotes', icon: ScrollText },
-  { to: 'files', label: 'Files', icon: FolderArchive },
-  { to: 'contracts', label: 'Contracts', icon: FileSignature },
+  { to: 'quotes', label: 'Quotes', icon: Scroll },
+  { to: 'files', label: 'Files', icon: Archive },
+  { to: 'contracts', label: 'Contracts', icon: Signature },
 ];
 
 export default function PortalLayout() {
@@ -131,7 +121,7 @@ function PortalFooter({ client }: { client: Client }) {
             href={`mailto:${settings.email}?subject=${subject}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-line bg-surface text-[13.5px] font-bold text-ink hover:-translate-y-px transition-transform"
           >
-            <Mail size={15} /> Email {settings.lead}
+            <Envelope size={15} /> Email {settings.lead}
           </a>
           <a
             href={`https://wa.me/${settings.whatsapp}?text=${message}`}
@@ -139,7 +129,7 @@ function PortalFooter({ client }: { client: Client }) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-purple text-white text-[13.5px] font-bold hover:-translate-y-px transition-transform"
           >
-            <MessageCircle size={15} /> WhatsApp {settings.lead}
+            <ChatCircle size={15} /> WhatsApp {settings.lead}
           </a>
         </div>
       </div>

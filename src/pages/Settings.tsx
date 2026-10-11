@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, Building2, PlugZap, RotateCcw, User } from 'lucide-react';
+import { ArrowCounterClockwise, Bell, Buildings, PlugsConnected, User } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -17,10 +17,10 @@ import type { StudioSettings } from '@/src/types';
 type TabId = 'studio' | 'notifications' | 'integrations' | 'data';
 
 const TABS: { id: TabId; label: string; icon: typeof User }[] = [
-  { id: 'studio', label: 'Business Profile', icon: Building2 },
+  { id: 'studio', label: 'Business Profile', icon: Buildings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'integrations', label: 'Integrations', icon: PlugZap },
-  { id: 'data', label: 'Data', icon: RotateCcw },
+  { id: 'integrations', label: 'Integrations', icon: PlugsConnected },
+  { id: 'data', label: 'Data', icon: ArrowCounterClockwise },
 ];
 
 const NOTIFICATION_LABELS: Record<keyof StudioSettings['notifications'], string> = {
@@ -261,7 +261,7 @@ function DataSettings({ onRefresh }: { onRefresh: () => Promise<void> }) {
       </p>
       <Button
         variant="secondary"
-        icon={RotateCcw}
+        icon={ArrowCounterClockwise}
         className="mt-5"
         disabled={busy}
         onClick={async () => {

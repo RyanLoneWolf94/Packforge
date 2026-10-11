@@ -1,18 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  Clock,
-  Edit2,
-  FolderOpen,
-  GaugeCircle,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { CaretLeft, CaretRight, Check, Clock, FolderOpen, Gauge, ListChecks, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -79,7 +67,7 @@ type TaskForm = { title: string; tag: string; dueDate: string };
 const blankTask = (): TaskForm => ({ title: '', tag: 'Medium', dueDate: '' });
 
 export default function Projects() {
-  const { projects, projectTasks, clientFor, add, update, remove } = useStudio();
+  const { projects, projectTasks, clientFor, add, update, remove, addDeliverable } = useStudio();
 
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -117,6 +105,18 @@ export default function Projects() {
   const [taskModal, setTaskModal] = useState<{ lane: TaskLane; editing: ProjectTask | null } | null>(
     null,
   );
+  // Promoting a task copies it onto the client-facing tracker as a deliverable.
+  // Tasks stay internal by default — this is the deliberate hand-off.
+  const [promoting, setPromoting] = useState<ProjectTask | null>(null);
+  const [promotePhaseId, setPromotePhaseId] = useState('');
+
+  const promotedTitles = useMemo(() => {
+    const titles = new Set<string>();
+    selected?.phases.forEach((ph) =>
+      ph.deliverables.forEach((d) => titles.add(d.title.trim().toLowerCase())),
+    );
+    return titles;
+  }, [selected]);
   const [taskForm, setTaskForm] = useState<TaskForm>(blankTask);
   const [subtaskDraft, setSubtaskDraft] = useState<Record<string, string>>({});
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
@@ -192,7 +192,7 @@ export default function Projects() {
         actions={
           <>
             <RouterLink to="/admin/tracker">
-              <Button variant="secondary" icon={GaugeCircle}>
+              <Button variant="secondary" icon={Gauge}>
                 Open Tracker
               </Button>
             </RouterLink>
@@ -314,14 +314,14 @@ export default function Projects() {
                       onClick={() => setIsEditOpen(true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-ink-soft hover:text-ink hover:bg-surface-2 transition-colors"
                     >
-                      <Pencil size={14} /> Edit
+                      <PencilSimple size={14} /> Edit
                     </button>
 
                     <RouterLink
                       to={`/admin/tracker/${selected.id}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-dim text-purple hover:bg-purple hover:text-white transition-colors"
                     >
-                      <GaugeCircle size={14} /> Phase tracker
+                      <Gauge size={14} /> Phase tracker
                     </RouterLink>
                   </div>
                 </div>
@@ -383,12 +383,36 @@ export default function Projects() {
                                   ))}
                                 </div>
                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center absolute top-2 right-2 bg-surface/90 backdrop-blur rounded p-0.5 shadow-sm border border-line">
+                                  {promotedTitles.has(task.title.trim().toLowerCase()) ? (
+                                    <span
+                                      className="text-positive p-1"
+                                      title="Already on the client tracker"
+                                    >
+                                      <ListChecks size={12} />
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        if (!selected?.phases.length) {
+                                          toast.error('Add a phase in the tracker first');
+                                          return;
+                                        }
+                                        setPromotePhaseId(selected.phases[0].id);
+                                        setPromoting(task);
+                                      }}
+                                      aria-label="Add to client tracker"
+                                      title="Add to the client-facing tracker"
+                                      className="text-ink-faint hover:text-orange p-1 hover:bg-orange-dim rounded transition-colors"
+                                    >
+                                      <ListChecks size={12} />
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => openEditTask(task)}
                                     aria-label="Edit task"
                                     className="text-ink-faint hover:text-purple p-1 hover:bg-purple-dim rounded transition-colors"
                                   >
-                                    <Edit2 size={12} />
+                                    <PencilSimple size={12} />
                                   </button>
                                   <button
                                     onClick={() => {
@@ -398,7 +422,7 @@ export default function Projects() {
                                     aria-label="Delete task"
                                     className="text-ink-faint hover:text-red p-1 hover:bg-red-dim rounded transition-colors"
                                   >
-                                    <Trash2 size={12} />
+                                    <Trash size={12} />
                                   </button>
                                 </div>
                               </div>
@@ -420,7 +444,7 @@ export default function Projects() {
                                       : 'border-line hover:border-positive',
                                   )}
                                 >
-                                  {task.lane === 'Done' ? <Check size={11} strokeWidth={4} /> : null}
+                                  {task.lane === 'Done' ? <Check size={11} /> : null}
                                 </button>
                                 <h4
                                   className={cn(
@@ -537,7 +561,7 @@ export default function Projects() {
                                     aria-label="Move left"
                                     className="p-1 rounded text-ink-faint hover:text-purple hover:bg-purple-dim disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-faint transition-colors"
                                   >
-                                    <ChevronLeft size={14} />
+                                    <CaretLeft size={14} />
                                   </button>
                                   <button
                                     onClick={() => moveTask(task, 1)}
@@ -545,7 +569,7 @@ export default function Projects() {
                                     aria-label="Move right"
                                     className="p-1 rounded text-ink-faint hover:text-purple hover:bg-purple-dim disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-faint transition-colors"
                                   >
-                                    <ChevronRight size={14} />
+                                    <CaretRight size={14} />
                                   </button>
                                   <div className="w-6 h-6 rounded-full bg-night text-white flex items-center justify-center text-[10px] font-bold ml-1">
                                     {task.assignee || 'RM'}
@@ -579,6 +603,62 @@ export default function Projects() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={Boolean(promoting)}
+        onClose={() => setPromoting(null)}
+        title="Add to client tracker"
+        subtitle="Copies this task onto a phase as a deliverable the client can see"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPromoting(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!promoting || !selected || !promotePhaseId) return;
+                addDeliverable(
+                  selected.id,
+                  promotePhaseId,
+                  promoting.title,
+                  promoting.subtasks.map((st) => st.title).join(' · '),
+                );
+                setPromoting(null);
+                toast.success('Added to the client tracker');
+              }}
+            >
+              Add deliverable
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-surface-2 rounded-[10px] p-4">
+            <p className="text-sm font-bold text-ink">{promoting?.title}</p>
+            {promoting?.subtasks.length ? (
+              <p className="text-[12.5px] text-ink-soft mt-1">
+                {promoting.subtasks.map((st) => st.title).join(' · ')}
+              </p>
+            ) : null}
+          </div>
+          <Field label="Add to phase">
+            <Select
+              value={promotePhaseId}
+              onChange={(e) => setPromotePhaseId(e.target.value)}
+            >
+              {selected?.phases.map((ph, i) => (
+                <option key={ph.id} value={ph.id}>
+                  Phase {i + 1} — {ph.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <p className="text-[12px] text-ink-soft">
+            The task stays on your board. Ticking the deliverable off in the tracker is what
+            moves the client's progress.
+          </p>
+        </div>
+      </Modal>
 
       <EditProjectModal
         project={selected}

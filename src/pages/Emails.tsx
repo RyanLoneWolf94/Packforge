@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Edit2, Eye, Mail, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, Envelope, Eye, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -123,7 +123,7 @@ export default function Emails() {
       {emailTemplates.length === 0 ? (
         <Card>
           <EmptyState
-            icon={Mail}
+            icon={Envelope}
             title="No templates yet"
             description="Create a reusable template for invoices, quotes and updates."
             action={
@@ -167,7 +167,7 @@ export default function Emails() {
                     className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                     aria-label="Edit"
                   >
-                    <Edit2 size={14} />
+                    <PencilSimple size={14} />
                   </button>
                   <button
                     onClick={() => {
@@ -177,7 +177,7 @@ export default function Emails() {
                     className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                     aria-label="Delete"
                   >
-                    <Trash2 size={14} />
+                    <Trash size={14} />
                   </button>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function Emails() {
                 onClick={() => openEdit(template)}
                 className="mt-4 pt-3 border-t border-line text-xs font-bold text-orange hover:text-orange-deep flex items-center gap-1"
               >
-                <Pencil size={13} /> Edit template
+                <PencilSimple size={13} /> Edit template
               </button>
             </Card>
           ))}

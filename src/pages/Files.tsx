@@ -1,14 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Download,
-  Eye,
-  EyeOff,
-  FileText,
-  FolderArchive,
-  Plus,
-  Search,
-  Trash2,
-} from 'lucide-react';
+import { Archive, DownloadSimple, Eye, EyeSlash, FileText, MagnifyingGlass, Plus, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -107,10 +98,10 @@ export default function Files() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatCard icon={FolderArchive} tone="purple" value={files.length} label="Total Files" />
+        <StatCard icon={Archive} tone="purple" value={files.length} label="Total Files" />
         <StatCard icon={Eye} tone="positive" value={shared} label="Shared With Clients" />
         <StatCard
-          icon={EyeOff}
+          icon={EyeSlash}
           tone="neutral"
           value={files.length - shared}
           label="Internal Only"
@@ -119,14 +110,14 @@ export default function Files() {
 
       <Card className="p-4 flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-[220px]">
-          <Search
+          <MagnifyingGlass
             size={15}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"
           />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search file or client…"
+            placeholder="MagnifyingGlass file or client…"
             className="pl-10"
           />
         </div>
@@ -147,7 +138,7 @@ export default function Files() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState
-            icon={FolderArchive}
+            icon={Archive}
             title="No files match"
             description="Register a deliverable so the client can find it in their portal."
             action={
@@ -201,7 +192,7 @@ export default function Files() {
                       : 'text-ink-faint hover:bg-surface-2',
                   )}
                 >
-                  {file.sharedWithClient ? <Eye size={16} /> : <EyeOff size={16} />}
+                  {file.sharedWithClient ? <Eye size={16} /> : <EyeSlash size={16} />}
                 </button>
                 {file.url ? (
                   <button
@@ -210,14 +201,14 @@ export default function Files() {
                     aria-label={`Open ${file.name}`}
                     title="Open file"
                   >
-                    <Download size={16} />
+                    <DownloadSimple size={16} />
                   </button>
                 ) : (
                   <span
                     className="p-2 text-ink-faint/40 cursor-default"
                     title="No link attached to this file"
                   >
-                    <Download size={16} />
+                    <DownloadSimple size={16} />
                   </span>
                 )}
                 <button
@@ -228,7 +219,7 @@ export default function Files() {
                   className="p-2 text-ink-faint hover:text-red hover:bg-red-dim rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                   aria-label={`Delete ${file.name}`}
                 >
-                  <Trash2 size={16} />
+                  <Trash size={16} />
                 </button>
               </div>
             </div>
@@ -319,7 +310,7 @@ export default function Files() {
               </Select>
             </Field>
           </div>
-          <Field label="Download URL" hint="Optional — a Drive or storage link">
+          <Field label="DownloadSimple URL" hint="Optional — a Drive or storage link">
             <Input
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { DollarSign, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { CurrencyDollar, TrendDown, TrendUp, Wallet } from '@phosphor-icons/react';
 import {
   Bar,
   BarChart,
@@ -87,19 +87,19 @@ export default function Overview() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
-          icon={DollarSign}
+          icon={CurrencyDollar}
           tone="positive"
           value={formatCurrency(collected)}
           label="Collected"
         />
         <StatCard
-          icon={TrendingUp}
+          icon={TrendUp}
           tone="gold"
           value={formatCurrency(outstanding)}
           label="Outstanding"
         />
         <StatCard
-          icon={TrendingDown}
+          icon={TrendDown}
           tone="red"
           value={formatCurrency(spend)}
           label="Total Spend"
@@ -120,7 +120,7 @@ export default function Overview() {
       {!hasData ? (
         <Card>
           <EmptyState
-            icon={DollarSign}
+            icon={CurrencyDollar}
             title="No financial data yet"
             description="Raise an invoice or log an expense to populate this view."
           />

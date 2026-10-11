@@ -1,4 +1,4 @@
-import { Briefcase, CalendarDays } from 'lucide-react';
+import { Briefcase, CalendarBlank } from '@phosphor-icons/react';
 import {
   ActionItems,
   BrandSnapshotPanel,
@@ -54,7 +54,7 @@ function ProjectProgress({ project }: { project: Project }) {
           </div>
           <div className="flex gap-2 flex-wrap">
             <MetaPill>
-              <CalendarDays size={13} /> Target {formatDate(project.targetDelivery)}
+              <CalendarBlank size={13} /> Target {formatDate(project.targetDelivery)}
             </MetaPill>
             <MetaPill>
               Value <b className="text-ink">{formatCurrency(projectBudget(project))}</b>

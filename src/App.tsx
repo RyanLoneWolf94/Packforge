@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
+import { IconContext } from "@phosphor-icons/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { StudioProvider } from "./store/StudioStore";
@@ -52,6 +53,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <IconContext.Provider value={{ weight: 'fill' }}>
       <AuthProvider>
         <Router>
           <Toaster position="bottom-right" richColors />
@@ -130,6 +132,7 @@ export default function App() {
           </Routes>
         </Router>
       </AuthProvider>
+      </IconContext.Provider>
     </ErrorBoundary>
   );
 }

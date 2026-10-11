@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  Building2,
-  Edit2,
-  ExternalLink,
-  Link2,
-  Mail,
-  Phone,
-  Plus,
-  Trash2,
-  Users,
-} from 'lucide-react';
+import { ArrowSquareOut, Buildings, Envelope, LinkSimple, PencilSimple, Phone, Plus, Trash, Users } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -104,13 +94,13 @@ export default function Clients() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard icon={Users} tone="purple" value={clients.length} label="Total Clients" />
         <StatCard
-          icon={Building2}
+          icon={Buildings}
           tone="orange"
           value={formatCurrency(totalValue)}
           label="Lifetime Engagement Value"
         />
         <StatCard
-          icon={Mail}
+          icon={Envelope}
           tone="gold"
           value={formatCurrency(outstandingTotal(invoices))}
           label="Outstanding Across Clients"
@@ -151,21 +141,21 @@ export default function Clients() {
                     title="Copy portal link"
                     className="p-1.5 text-ink-faint hover:text-orange hover:bg-orange-dim rounded transition-colors"
                   >
-                    <Link2 size={14} />
+                    <LinkSimple size={14} />
                   </button>
                   <button
                     onClick={() => openEdit(client)}
                     title="Edit"
                     className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                   >
-                    <Edit2 size={14} />
+                    <PencilSimple size={14} />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(client)}
                     title="Delete"
                     className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash size={14} />
                   </button>
                 </div>
 
@@ -181,7 +171,7 @@ export default function Clients() {
 
                 <div className="space-y-1.5 text-[12.5px] text-ink-soft mb-4">
                   <div className="flex items-center gap-2 truncate">
-                    <Mail size={13} className="shrink-0 text-ink-faint" />
+                    <Envelope size={13} className="shrink-0 text-ink-faint" />
                     <span className="truncate">{client.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -189,7 +179,7 @@ export default function Clients() {
                     {client.phone || '—'}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Building2 size={13} className="shrink-0 text-ink-faint" />
+                    <Buildings size={13} className="shrink-0 text-ink-faint" />
                     {client.location || '—'}
                   </div>
                 </div>
@@ -237,7 +227,7 @@ export default function Clients() {
                   target="_blank"
                   className="mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold bg-purple-dim text-purple hover:bg-purple hover:text-white transition-colors"
                 >
-                  <ExternalLink size={13} /> Open client portal
+                  <ArrowSquareOut size={13} /> Open client portal
                 </Link>
               </Card>
             );

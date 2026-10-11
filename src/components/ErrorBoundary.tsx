@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { Warning } from '@phosphor-icons/react';
 
 /**
  * Stops a single component throw from blanking the whole app — which is exactly
@@ -27,7 +27,7 @@ export default class ErrorBoundary extends Component<
       <div className="min-h-screen flex items-center justify-center bg-paper p-6">
         <div className="max-w-md w-full bg-surface border border-line rounded-[14px] shadow-sm p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-red-dim text-red flex items-center justify-center mx-auto mb-5">
-            <AlertTriangle size={26} />
+            <Warning size={26} />
           </div>
           <h1 className="disp text-lg font-extrabold text-ink">Something broke</h1>
           <p className="text-sm text-ink-soft mt-2">

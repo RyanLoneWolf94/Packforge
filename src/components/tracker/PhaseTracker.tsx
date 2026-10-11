@@ -1,4 +1,4 @@
-import { Check, ExternalLink, Link2, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowCounterClockwise, ArrowSquareOut, Check, LinkSimple, Lock, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, Input, ProgressRing, StatusPill } from '@/src/components/ui';
@@ -176,7 +176,7 @@ export function PhaseTracker({
                         title="Rename or reprice this phase"
                         className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                       >
-                        <Pencil size={14} />
+                        <PencilSimple size={14} />
                       </button>
                       <button
                         onClick={() => {
@@ -190,7 +190,7 @@ export function PhaseTracker({
                         aria-label="Remove phase"
                         className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                       >
-                        <Trash2 size={14} />
+                        <Trash size={14} />
                       </button>
                     </span>
                   ) : null}
@@ -230,7 +230,7 @@ export function PhaseTracker({
                       d.done ? 'bg-gold border-gold text-white' : 'border-line',
                     )}
                   >
-                    {d.done ? <Check size={13} strokeWidth={3.5} /> : null}
+                    {d.done ? <Check size={13} /> : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div
@@ -252,7 +252,7 @@ export function PhaseTracker({
                       aria-label={`Remove ${d.title}`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-faint hover:text-red p-1"
                     >
-                      <Trash2 size={13} />
+                      <Trash size={13} />
                     </button>
                   ) : null}
                 </div>
@@ -323,7 +323,7 @@ export function PhaseTracker({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-dim text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
                 >
-                  <ExternalLink size={14} /> View phase files
+                  <ArrowSquareOut size={14} /> View phase files
                 </a>
               ) : (
                 <span className="text-[13px] text-ink-faint italic">
@@ -477,11 +477,11 @@ export function DeliveryTimeline({
               >
                 {week.done ? (
                   <>
-                    <RotateCcw size={12} /> Reopen stage
+                    <ArrowCounterClockwise size={12} /> Reopen stage
                   </>
                 ) : (
                   <>
-                    <Check size={12} strokeWidth={3} /> Mark complete
+                    <Check size={12} /> Mark complete
                   </>
                 )}
               </button>
@@ -664,7 +664,7 @@ export function ActionItems({
                   className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                   title="Remove"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} />
                 </button>
               </div>
             ) : null}
@@ -681,7 +681,7 @@ export function PortalShareButton({ token }: { token: string }) {
   return (
     <Button
       variant="secondary"
-      icon={Link2}
+      icon={LinkSimple}
       onClick={() => {
         const url = `${window.location.origin}/portal/${token}`;
         navigator.clipboard

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, LogIn, Mail } from 'lucide-react';
+import { CircleNotch, Envelope, SignIn } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Button, Card, Field, Input } from '@/src/components/ui';
 import { Logo } from '@/src/components/Logo';
@@ -80,7 +80,7 @@ export default function Login() {
           {sent ? (
             <div className="text-center py-4">
               <div className="w-12 h-12 rounded-full bg-orange-dim text-orange flex items-center justify-center mx-auto mb-4">
-                <Mail size={22} />
+                <Envelope size={22} />
               </div>
               <p className="text-sm text-ink font-bold">Check your inbox</p>
               <p className="text-[13px] text-ink-soft mt-1">
@@ -114,7 +114,7 @@ export default function Login() {
                   placeholder="••••••••"
                 />
               </Field>
-              <Button type="submit" icon={busy ? Loader2 : LogIn} disabled={busy} className="w-full">
+              <Button type="submit" icon={busy ? CircleNotch : SignIn} disabled={busy} className="w-full">
                 {isSignUp ? 'Create account' : 'Sign in'}
               </Button>
 
@@ -147,7 +147,7 @@ export default function Login() {
                   autoFocus
                 />
               </Field>
-              <Button type="submit" icon={busy ? Loader2 : Mail} disabled={busy} className="w-full">
+              <Button type="submit" icon={busy ? CircleNotch : Envelope} disabled={busy} className="w-full">
                 Send magic link
               </Button>
               <div className="text-center text-xs pt-1">

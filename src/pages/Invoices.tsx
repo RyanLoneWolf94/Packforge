@@ -1,14 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  CheckCircle2,
-  DollarSign,
-  Download,
-  Edit2,
-  Plus,
-  Receipt,
-  Search,
-  Trash2,
-} from 'lucide-react';
+import { CheckCircle, CurrencyDollar, DownloadSimple, MagnifyingGlass, PencilSimple, Plus, Receipt, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -167,7 +158,7 @@ export default function Invoices() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard
-          icon={DollarSign}
+          icon={CurrencyDollar}
           tone="purple"
           value={formatCurrency(paidTotal(invoices))}
           label="Collected"
@@ -179,7 +170,7 @@ export default function Invoices() {
           label="Outstanding"
         />
         <StatCard
-          icon={CheckCircle2}
+          icon={CheckCircle}
           tone={invoices.some((i) => isOverdue(i)) ? 'red' : 'neutral'}
           value={invoices.filter((i) => isOverdue(i)).length}
           label="Past Due"
@@ -188,14 +179,14 @@ export default function Invoices() {
 
       <Card className="p-4 flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-[220px]">
-          <Search
+          <MagnifyingGlass
             size={15}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"
           />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search number, client or note…"
+            placeholder="MagnifyingGlass number, client or note…"
             className="pl-10"
           />
         </div>
@@ -287,7 +278,7 @@ export default function Invoices() {
                               title="Mark paid"
                               className="p-1.5 text-ink-faint hover:text-positive hover:bg-positive-dim rounded transition-colors"
                             >
-                              <CheckCircle2 size={15} />
+                              <CheckCircle size={15} />
                             </button>
                           ) : null}
                           <button
@@ -299,17 +290,17 @@ export default function Invoices() {
                                 settings,
                               })
                             }
-                            title="Download PDF"
+                            title="DownloadSimple PDF"
                             className="p-1.5 text-ink-faint hover:text-orange hover:bg-orange-dim rounded transition-colors"
                           >
-                            <Download size={15} />
+                            <DownloadSimple size={15} />
                           </button>
                           <button
                             onClick={() => openEdit(invoice)}
                             title="Edit"
                             className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
                           >
-                            <Edit2 size={15} />
+                            <PencilSimple size={15} />
                           </button>
                           <button
                             onClick={() => {
@@ -319,7 +310,7 @@ export default function Invoices() {
                             title="Delete"
                             className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
                           >
-                            <Trash2 size={15} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </td>
