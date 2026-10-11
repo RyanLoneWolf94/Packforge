@@ -1,4 +1,12 @@
-import { CalendarDays, ExternalLink, FolderOpen, Palette, Plus, Wallet } from 'lucide-react';
+import {
+  CalendarDays,
+  ExternalLink,
+  FolderOpen,
+  Palette,
+  Pencil,
+  Plus,
+  Wallet,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -32,6 +40,7 @@ import {
 } from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
+import EditProjectModal from '@/src/components/EditProjectModal';
 import type { Project } from '@/src/types';
 
 /**
@@ -62,6 +71,7 @@ export default function ProjectTracker() {
   const selected = projects.find((p) => p.id === projectId) ?? projects[0];
 
   const [isNewOpen, setIsNewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isActionOpen, setIsActionOpen] = useState(false);
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
@@ -71,7 +81,7 @@ export default function ProjectTracker() {
         <EmptyState
           icon={FolderOpen}
           title="No projects yet"
-          description="Create a project from a service package to generate its phase tracker automatically."
+          description="Start a project from a blueprint to seed its phases and timeline, or build one from scratch."
           action={<Button icon={Plus} onClick={() => setIsNewOpen(true)}>New Project</Button>}
         />
         <NewProjectModal open={isNewOpen} onClose={() => setIsNewOpen(false)} />
@@ -91,6 +101,11 @@ export default function ProjectTracker() {
         actions={
           <>
             {client ? <PortalShareButton token={client.portalToken} /> : null}
+            {selected ? (
+              <Button variant="secondary" icon={Pencil} onClick={() => setIsEditOpen(true)}>
+                Edit
+              </Button>
+            ) : null}
             <Button icon={Plus} onClick={() => setIsNewOpen(true)}>
               New Project
             </Button>
@@ -233,6 +248,12 @@ export default function ProjectTracker() {
         open={isNewOpen}
         onClose={() => setIsNewOpen(false)}
         onCreated={(id) => navigate(`/admin/tracker/${id}`)}
+      />
+
+      <EditProjectModal
+        project={selected}
+        open={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
       />
 
       <RequestFromClientModal

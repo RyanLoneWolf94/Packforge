@@ -1,4 +1,4 @@
-import { Check, ExternalLink, Link2, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Link2, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, Input, ProgressRing, StatusPill } from '@/src/components/ui';
@@ -70,7 +70,15 @@ export function PhaseTracker({
   project: Project;
   mode: 'admin' | 'client';
 }) {
-  const { toggleDeliverable, setPhaseLink, addDeliverable, removeDeliverable } = useStudio();
+  const {
+    toggleDeliverable,
+    setPhaseLink,
+    addDeliverable,
+    removeDeliverable,
+    addPhase,
+    updatePhase,
+    removePhase,
+  } = useStudio();
   const isAdmin = mode === 'admin';
 
   // Link inputs are locally buffered so a save is explicit rather than firing
@@ -78,6 +86,12 @@ export function PhaseTracker({
   const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
+  // Phase editing: a project started from scratch has no phases at all, so the
+  // tracker has to be able to build them, not just tick them off.
+  const [editingPhase, setEditingPhase] = useState<string | null>(null);
+  const [phaseDraft, setPhaseDraft] = useState({ name: '', budget: '' });
+  const [addingPhase, setAddingPhase] = useState(false);
+  const [newPhase, setNewPhase] = useState({ name: '', budget: '' });
 
   return (
     <div className="space-y-4">
@@ -102,13 +116,86 @@ export function PhaseTracker({
               >
                 {String(idx + 1).padStart(2, '0')}
               </div>
-              <h3 className="font-bold text-base text-ink flex-1 min-w-[160px]">
-                Phase {idx + 1} — {phase.name}
-              </h3>
-              <StatusPill tone={status}>{STATUS_LABEL[status]}</StatusPill>
-              <span className="font-extrabold text-base text-purple">
-                {formatCurrency(phase.budget)}
-              </span>
+              {isAdmin && editingPhase === phase.id ? (
+                <div className="flex-1 min-w-[260px] flex gap-2">
+                  <input
+                    autoFocus
+                    value={phaseDraft.name}
+                    onChange={(e) => setPhaseDraft({ ...phaseDraft, name: e.target.value })}
+                    placeholder="Phase name"
+                    className="flex-1 font-bold px-3 py-1.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={phaseDraft.budget}
+                    onChange={(e) => setPhaseDraft({ ...phaseDraft, budget: e.target.value })}
+                    className="w-28 px-3 py-1.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!phaseDraft.name.trim()) {
+                        toast.error('Phase needs a name');
+                        return;
+                      }
+                      updatePhase(project.id, phase.id, {
+                        name: phaseDraft.name.trim(),
+                        budget: Number(phaseDraft.budget) || 0,
+                      });
+                      setEditingPhase(null);
+                      toast.success('Phase updated');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-orange text-white text-xs font-bold"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingPhase(null)}
+                    className="px-2 py-1.5 text-xs font-bold text-ink-soft hover:text-ink"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-bold text-base text-ink flex-1 min-w-[160px]">
+                    Phase {idx + 1} — {phase.name}
+                  </h3>
+                  <StatusPill tone={status}>{STATUS_LABEL[status]}</StatusPill>
+                  <span className="font-extrabold text-base text-purple">
+                    {formatCurrency(phase.budget)}
+                  </span>
+                  {isAdmin ? (
+                    <span className="flex gap-0.5">
+                      <button
+                        onClick={() => {
+                          setPhaseDraft({ name: phase.name, budget: String(phase.budget) });
+                          setEditingPhase(phase.id);
+                        }}
+                        aria-label="Edit phase"
+                        title="Rename or reprice this phase"
+                        className="p-1.5 text-ink-faint hover:text-purple hover:bg-purple-dim rounded transition-colors"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (phase.deliverables.length) {
+                            toast.error('Remove its deliverables first');
+                            return;
+                          }
+                          removePhase(project.id, phase.id);
+                          toast.success('Phase removed');
+                        }}
+                        aria-label="Remove phase"
+                        className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </span>
+                  ) : null}
+                </>
+              )}
             </div>
 
             <div className="grid sm:grid-cols-2 gap-2.5 mb-4">
@@ -247,6 +334,56 @@ export function PhaseTracker({
           </Card>
         );
       })}
+
+      {isAdmin ? (
+        addingPhase ? (
+          <Card className="p-4 flex gap-2 flex-wrap items-center">
+            <input
+              autoFocus
+              value={newPhase.name}
+              onChange={(e) => setNewPhase({ ...newPhase, name: e.target.value })}
+              placeholder="Phase name — e.g. Discovery & Scoping"
+              className="flex-1 min-w-[200px] px-3 py-1.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+            />
+            <input
+              type="number"
+              min="0"
+              value={newPhase.budget}
+              onChange={(e) => setNewPhase({ ...newPhase, budget: e.target.value })}
+              placeholder="Budget"
+              className="w-32 px-3 py-1.5 bg-surface border border-line rounded-lg text-sm text-ink outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+            />
+            <button
+              onClick={() => {
+                if (!newPhase.name.trim()) {
+                  toast.error('Phase needs a name');
+                  return;
+                }
+                addPhase(project.id, newPhase.name.trim(), Number(newPhase.budget) || 0);
+                setNewPhase({ name: '', budget: '' });
+                setAddingPhase(false);
+                toast.success('Phase added');
+              }}
+              className="px-4 py-2 rounded-lg bg-orange text-white text-sm font-bold hover:bg-orange-deep transition-colors"
+            >
+              Add phase
+            </button>
+            <button
+              onClick={() => setAddingPhase(false)}
+              className="px-3 py-2 text-sm font-bold text-ink-soft hover:text-ink"
+            >
+              Cancel
+            </button>
+          </Card>
+        ) : (
+          <button
+            onClick={() => setAddingPhase(true)}
+            className="w-full py-3 border border-dashed border-line rounded-[10px] text-[13px] font-bold text-ink-soft hover:border-orange hover:text-orange transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={15} /> Add phase
+          </button>
+        )
+      ) : null}
 
       <div className="flex items-center justify-between gap-4 flex-wrap px-5 py-4 bg-surface-2 rounded-[10px] text-sm">
         <span className="text-ink-soft">

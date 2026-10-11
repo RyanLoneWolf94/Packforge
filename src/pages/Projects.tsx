@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Clock,
   Edit2,
   FolderOpen,
@@ -29,6 +31,8 @@ import { cn, formatDate } from '@/src/lib/utils';
 import { projectProgress } from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
+import EditProjectModal from '@/src/components/EditProjectModal';
+import ProjectSummary from '@/src/components/ProjectSummary';
 import type { ProjectStatus, ProjectTask, Subtask, TaskLane } from '@/src/types';
 
 /**
@@ -80,6 +84,7 @@ export default function Projects() {
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const visibleProjects = useMemo(
     () => projects.filter((p) => showArchived || p.status !== 'archived'),
@@ -160,6 +165,13 @@ export default function Projects() {
       toast.success('Task added');
     }
     setTaskModal(null);
+  };
+
+  /** Tick a task straight to Done, or send a finished one back to In Progress. */
+  const toggleDone = (task: ProjectTask) => {
+    const next: TaskLane = task.lane === 'Done' ? 'In Progress' : 'Done';
+    update('projectTasks', task.id, { lane: next, sortOrder: tasksByLane[next].length });
+    toast.success(next === 'Done' ? 'Task completed' : 'Task reopened');
   };
 
   /** Move a task one lane left or right — the board has no drag-and-drop. */
@@ -298,6 +310,13 @@ export default function Projects() {
                       </Select>
                     </label>
 
+                    <button
+                      onClick={() => setIsEditOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-ink-soft hover:text-ink hover:bg-surface-2 transition-colors"
+                    >
+                      <Pencil size={14} /> Edit
+                    </button>
+
                     <RouterLink
                       to={`/admin/tracker/${selected.id}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-dim text-purple hover:bg-purple hover:text-white transition-colors"
@@ -305,6 +324,10 @@ export default function Projects() {
                       <GaugeCircle size={14} /> Phase tracker
                     </RouterLink>
                   </div>
+                </div>
+
+                <div className="mb-6 shrink-0">
+                  <ProjectSummary project={selected} />
                 </div>
 
                 {selected.status === 'archived' ? (
@@ -380,9 +403,36 @@ export default function Projects() {
                                 </div>
                               </div>
 
-                              <h4 className="font-bold text-ink text-sm mb-2 leading-tight pr-12">
-                                {task.title}
-                              </h4>
+                              <div className="flex items-start gap-2 mb-2 pr-12">
+                                <button
+                                  onClick={() => toggleDone(task)}
+                                  role="checkbox"
+                                  aria-checked={task.lane === 'Done'}
+                                  aria-label={
+                                    task.lane === 'Done' ? 'Reopen task' : 'Mark task done'
+                                  }
+                                  title={task.lane === 'Done' ? 'Reopen task' : 'Mark task done'}
+                                  className={cn(
+                                    'w-[18px] h-[18px] rounded-full border-2 shrink-0 mt-px',
+                                    'flex items-center justify-center transition-colors',
+                                    task.lane === 'Done'
+                                      ? 'bg-positive border-positive text-white'
+                                      : 'border-line hover:border-positive',
+                                  )}
+                                >
+                                  {task.lane === 'Done' ? <Check size={11} strokeWidth={4} /> : null}
+                                </button>
+                                <h4
+                                  className={cn(
+                                    'font-bold text-sm leading-tight',
+                                    task.lane === 'Done'
+                                      ? 'text-ink-faint line-through'
+                                      : 'text-ink',
+                                  )}
+                                >
+                                  {task.title}
+                                </h4>
+                              </div>
 
                               <div className="flex flex-col gap-1.5 mb-3">
                                 {task.subtasks.map((subtask) => (
@@ -529,6 +579,12 @@ export default function Projects() {
           </div>
         </div>
       )}
+
+      <EditProjectModal
+        project={selected}
+        open={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
 
       <NewProjectModal
         open={isNewOpen}

@@ -133,6 +133,10 @@ interface StudioContextValue extends StudioState {
   /* Tracker */
   toggleDeliverable: (projectId: string, phaseId: string, deliverableId: string) => void;
   setPhaseLink: (projectId: string, phaseId: string, link: string) => void;
+  /** Phases themselves — a project started from scratch has none until you add them. */
+  addPhase: (projectId: string, name: string, budget: number) => void;
+  updatePhase: (projectId: string, phaseId: string, patch: Partial<TrackerPhase>) => void;
+  removePhase: (projectId: string, phaseId: string) => void;
   addDeliverable: (projectId: string, phaseId: string, title: string, description: string) => void;
   removeDeliverable: (projectId: string, phaseId: string, deliverableId: string) => void;
   addActionItem: (projectId: string, title: string, detail: string) => void;
@@ -450,6 +454,27 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       setPhaseLink(projectId, phaseId, link) {
         patchPhase(projectId, phaseId, (phase) => ({ ...phase, link }));
+      },
+
+      addPhase(projectId, name, budget) {
+        patchProject(projectId, (project) => ({
+          ...project,
+          phases: [
+            ...project.phases,
+            { id: uid('ph'), name, budget, link: '', deliverables: [] },
+          ],
+        }));
+      },
+
+      updatePhase(projectId, phaseId, patch) {
+        patchPhase(projectId, phaseId, (phase) => ({ ...phase, ...patch }));
+      },
+
+      removePhase(projectId, phaseId) {
+        patchProject(projectId, (project) => ({
+          ...project,
+          phases: project.phases.filter((ph) => ph.id !== phaseId),
+        }));
       },
 
       addDeliverable(projectId, phaseId, title, description) {
