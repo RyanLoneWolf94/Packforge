@@ -500,6 +500,16 @@ export function DeliveryTimeline({
  * until everything is approved — so a client who has signed off a new name in
  * week 1 sees that name, with the parts still to come listed beneath.
  */
+/**
+ * True when a project has any approved brand work. Callers use this to decide
+ * whether the section belongs on the page at all — an app build or a marketing
+ * retainer has no brand identity to reveal, so the panel would be noise.
+ */
+export function hasBrandSnapshot(project: Project): boolean {
+  const s = project.brandSnapshot;
+  return Boolean(s?.name || s?.tagline || s?.palette?.length || s?.typography || s?.logoUrl);
+}
+
 export function BrandSnapshotPanel({ project }: { project: Project }) {
   const snapshot = project.brandSnapshot;
 

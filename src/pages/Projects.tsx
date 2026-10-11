@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { CaretLeft, CaretRight, Check, Clock, FolderOpen, Gauge, ListChecks, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Check, Eye, EyeSlash, Clock, FolderOpen, Gauge, ListChecks, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
@@ -159,6 +159,7 @@ export default function Projects() {
         dueDate: taskForm.dueDate,
         assignee: 'RM',
         subtasks: [],
+        clientVisible: true,
         sortOrder: tasksByLane[taskModal.lane].length,
         createdAt: new Date().toISOString().slice(0, 10),
       });
@@ -407,6 +408,40 @@ export default function Projects() {
                                       <ListChecks size={12} />
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => {
+                                      update('projectTasks', task.id, {
+                                        clientVisible: !task.clientVisible,
+                                      });
+                                      toast.success(
+                                        task.clientVisible
+                                          ? 'Hidden from the client'
+                                          : 'Visible to the client',
+                                      );
+                                    }}
+                                    aria-label={
+                                      task.clientVisible
+                                        ? 'Hide from client portal'
+                                        : 'Show in client portal'
+                                    }
+                                    title={
+                                      task.clientVisible
+                                        ? 'Visible to the client'
+                                        : 'Hidden from the client'
+                                    }
+                                    className={cn(
+                                      'p-1 rounded transition-colors',
+                                      task.clientVisible
+                                        ? 'text-positive hover:bg-positive-dim'
+                                        : 'text-ink-faint hover:bg-surface-2',
+                                    )}
+                                  >
+                                    {task.clientVisible ? (
+                                      <Eye size={12} />
+                                    ) : (
+                                      <EyeSlash size={12} />
+                                    )}
+                                  </button>
                                   <button
                                     onClick={() => openEditTask(task)}
                                     aria-label="Edit task"

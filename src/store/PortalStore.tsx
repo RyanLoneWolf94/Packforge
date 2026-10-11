@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { SEED } from '../data/seed';
 import { supabase } from '../lib/supabase';
-import type { Client, Contract, FileAsset, Invoice, Project, Quote, StudioSettings } from '../types';
+import type {
+  Client,
+  Contract,
+  FileAsset,
+  Invoice,
+  Project,
+  ProjectTask,
+  Quote,
+  StudioSettings,
+} from '../types';
 import { StudioContext } from './StudioStore';
 
 /**
@@ -26,6 +35,8 @@ interface Snapshot {
   quotes: Quote[];
   contracts: Contract[];
   files: FileAsset[];
+  /** Board tasks the studio has marked visible, for this client's projects. */
+  tasks: ProjectTask[];
   settings: StudioSettings | null;
 }
 
@@ -83,8 +94,8 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       leads: [],
       team: [],
       timeEntries: [],
-      // Studio-internal working tasks are never exposed to clients.
-      projectTasks: [],
+      // Only the tasks the studio chose to share reach the portal.
+      projectTasks: snapshot?.tasks ?? [],
       emailTemplates: [],
       blueprints: [],
       campaigns: [],

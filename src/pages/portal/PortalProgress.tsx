@@ -5,7 +5,9 @@ import {
   DeliveryTimeline,
   PhaseTracker,
   TrackerSummary,
+  hasBrandSnapshot,
 } from '@/src/components/tracker/PhaseTracker';
+import ClientTaskBoard from '@/src/components/ClientTaskBoard';
 import { Card, EmptyState, MetaPill } from '@/src/components/ui';
 import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { projectBudget } from '@/src/lib/tracker';
@@ -79,10 +81,15 @@ function ProjectProgress({ project }: { project: Project }) {
         <DeliveryTimeline project={project} mode="client" />
       </section>
 
-      <section>
-        <SectionHead title="Brand Snapshot" sub="Each piece appears as it's approved" />
-        <BrandSnapshotPanel project={project} />
-      </section>
+      <ClientTaskBoard projectId={project.id} />
+
+      {/* Only for work that actually has a brand identity to reveal. */}
+      {hasBrandSnapshot(project) ? (
+        <section>
+          <SectionHead title="Brand Snapshot" sub="Each piece appears as it's approved" />
+          <BrandSnapshotPanel project={project} />
+        </section>
+      ) : null}
     </div>
   );
 }

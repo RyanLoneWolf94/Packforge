@@ -132,6 +132,11 @@ export interface ProjectTask {
   dueDate: string;
   assignee: string;
   subtasks: Subtask[];
+  /**
+   * Whether the client sees this on their portal. Defaults to true so a board
+   * is useful to them immediately; untick to keep scratch work internal.
+   */
+  clientVisible: boolean;
   /** Position within its lane. */
   sortOrder: number;
   createdAt: string;

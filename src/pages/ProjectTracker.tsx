@@ -9,6 +9,7 @@ import {
   PhaseTracker,
   PortalShareButton,
   TrackerSummary,
+  hasBrandSnapshot,
 } from '@/src/components/tracker/PhaseTracker';
 import {
   Button,
@@ -231,7 +232,14 @@ export default function ProjectTracker() {
                 </Button>
               }
             />
-            <BrandSnapshotPanel project={selected} />
+            {hasBrandSnapshot(selected) ? (
+              <BrandSnapshotPanel project={selected} />
+            ) : (
+              <p className="text-[13px] text-ink-soft">
+                Nothing approved yet. Fill any field in to start revealing the identity in the
+                client's portal — leave it empty for work that isn't a branding engagement.
+              </p>
+            )}
           </section>
         </div>
       </div>
