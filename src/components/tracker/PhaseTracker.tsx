@@ -20,9 +20,20 @@ import type { Project } from '@/src/types';
 const STATUS_LABEL = { done: 'Complete', active: 'In Progress', upcoming: 'Upcoming' } as const;
 
 export function TrackerSummary({ project }: { project: Project }) {
-  const { pct, done, total } = projectProgress(project);
+  const { projectTasks } = useStudio();
+  const phases = projectProgress(project);
   const phase = currentPhase(project);
-  const complete = pct === 100;
+
+  const tasks = projectTasks.filter((t) => t.projectId === project.id);
+  const tasksDone = tasks.filter((t) => t.lane === 'Done').length;
+
+  // No phases set up yet — report on tasks instead of an empty phase plan.
+  const usingTasks = project.phases.length === 0 && tasks.length > 0;
+  const pct = usingTasks ? Math.round((tasksDone / tasks.length) * 100) : phases.pct;
+  const done = usingTasks ? tasksDone : phases.done;
+  const total = usingTasks ? tasks.length : phases.total;
+  const complete = total > 0 && pct === 100;
+  const nothingSetUp = project.phases.length === 0 && tasks.length === 0;
 
   return (
     <Card className="p-6 flex items-center gap-7 flex-wrap">
@@ -32,14 +43,24 @@ export function TrackerSummary({ project }: { project: Project }) {
           Current Status
         </div>
         <div className="disp text-xl font-extrabold text-purple mt-0.5">
-          {complete
-            ? 'All phases complete'
-            : `Phase ${project.phases.indexOf(phase!) + 1} · ${phase?.name}`}
+          {nothingSetUp
+            ? 'Getting started'
+            : complete
+              ? usingTasks
+                ? 'All work complete'
+                : 'All phases complete'
+              : usingTasks
+                ? 'Work underway'
+                : `Phase ${project.phases.indexOf(phase!) + 1} · ${phase?.name}`}
         </div>
         <div className="text-[13.5px] text-ink-soft mt-1">
-          {complete
-            ? 'Ready for final handover.'
-            : `${done} of ${total} deliverables signed off.`}
+          {nothingSetUp
+            ? 'Planning is underway — detail will appear here shortly.'
+            : complete
+              ? 'Ready for final handover.'
+              : usingTasks
+                ? `${done} of ${total} tasks complete.`
+                : `${done} of ${total} deliverables signed off.`}
         </div>
       </div>
       <div className="flex gap-1.5">

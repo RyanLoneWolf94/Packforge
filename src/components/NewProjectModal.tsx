@@ -26,11 +26,12 @@ export default function NewProjectModal({
   onClose: () => void;
   onCreated?: (id: string) => void;
 }) {
-  const { clients, blueprints, createProject } = useStudio();
+  const { clients, blueprints, contracts, createProject, update } = useStudio();
   const [form, setForm] = useState({
     name: '',
     clientId: '',
     blueprintId: '',
+    contractId: '',
     startDate: new Date().toISOString().slice(0, 10),
     targetDelivery: '',
     summary: '',
@@ -57,13 +58,23 @@ export default function NewProjectModal({
         new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10),
       summary: form.summary.trim() || bp?.description || '',
     });
-    toast.success(`${project.name} created with ${project.phases.length} phases`);
+    // Link an already-drafted agreement to the project it covers.
+    if (form.contractId) {
+      update('contracts', form.contractId, { projectId: project.id });
+    }
+
+    toast.success(
+      project.phases.length
+        ? `${project.name} created with ${project.phases.length} phases`
+        : `${project.name} created — add phases in the tracker`,
+    );
     onCreated?.(project.id);
     onClose();
     setForm({
       name: '',
       clientId: '',
       blueprintId: '',
+      contractId: '',
       startDate: new Date().toISOString().slice(0, 10),
       targetDelivery: '',
       summary: '',
@@ -75,7 +86,7 @@ export default function NewProjectModal({
       open={open}
       onClose={onClose}
       title="New Project"
-      subtitle="Picking a package seeds the phases, deliverables and budget split"
+      subtitle="Start from a blueprint, or create a blank project and add phases as you go"
       width="max-w-lg"
       footer={
         <>
@@ -136,6 +147,25 @@ export default function NewProjectModal({
                   ))}
               </optgroup>
             ))}
+          </Select>
+        </Field>
+
+        <Field
+          label="Contract"
+          hint="Optional — link an agreement you've already drafted for this client"
+        >
+          <Select
+            value={form.contractId}
+            onChange={(e) => setForm({ ...form, contractId: e.target.value })}
+          >
+            <option value="">No contract</option>
+            {contracts
+              .filter((c) => !c.projectId && (!form.clientId || c.clientId === form.clientId))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title} · {c.status}
+                </option>
+              ))}
           </Select>
         </Field>
 

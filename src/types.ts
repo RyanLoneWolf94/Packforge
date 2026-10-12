@@ -137,6 +137,11 @@ export interface ProjectTask {
    * is useful to them immediately; untick to keep scratch work internal.
    */
   clientVisible: boolean;
+  /**
+   * The phase this task belongs to, if it has been organised into one.
+   * Phases live inside the project, so this is a plain id reference.
+   */
+  phaseId?: string;
   /** Position within its lane. */
   sortOrder: number;
   createdAt: string;
@@ -240,6 +245,8 @@ export interface FileAsset {
    */
   sharedWithClient: boolean;
   url?: string;
+  /** Set when the file was uploaded to storage rather than linked elsewhere. */
+  storagePath?: string;
 }
 
 /* ------------------------------- Expenses ------------------------------ */

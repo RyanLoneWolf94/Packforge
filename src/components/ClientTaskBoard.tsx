@@ -23,10 +23,19 @@ const LANE_META: Record<TaskLane, { label: string; blurb: string }> = {
 const ORDER: TaskLane[] = ['In Progress', 'Todo', 'Done'];
 
 export default function ClientTaskBoard({ projectId }: { projectId: string }) {
-  const { projectTasks } = useStudio();
+  const { projectTasks, projects } = useStudio();
 
+  const project = projects.find((p) => p.id === projectId);
   const tasks = projectTasks.filter((t) => t.projectId === projectId);
   if (tasks.length === 0) return null;
+
+  // Once work is organised into phases, show it that way — it matches the
+  // phase plan the client already sees above. Otherwise fall back to status.
+  const phasesWithTasks = (project?.phases ?? []).filter((ph) =>
+    tasks.some((t) => t.phaseId === ph.id),
+  );
+  const unphased = tasks.filter((t) => !t.phaseId || !phasesWithTasks.some((ph) => ph.id === t.phaseId));
+  const groupByPhase = phasesWithTasks.length > 0;
 
   const done = tasks.filter((t) => t.lane === 'Done').length;
   const pct = Math.round((done / tasks.length) * 100);
@@ -43,19 +52,41 @@ export default function ClientTaskBoard({ projectId }: { projectId: string }) {
       <Card className="p-6 space-y-6">
         <ProgressBar value={pct} tone="orange" className="h-2" />
 
-        {ORDER.map((lane) => {
-          const rows = tasks
-            .filter((t) => t.lane === lane)
-            .sort((a, b) => a.sortOrder - b.sortOrder);
+        {(groupByPhase
+          ? [
+              ...phasesWithTasks.map((ph) => ({
+                key: ph.id,
+                heading: ph.name,
+                blurb: '',
+                rows: tasks.filter((t) => t.phaseId === ph.id),
+              })),
+              ...(unphased.length
+                ? [{ key: 'other', heading: 'Other work', blurb: '', rows: unphased }]
+                : []),
+            ]
+          : ORDER.map((lane) => ({
+              key: lane,
+              heading: LANE_META[lane].label,
+              blurb: LANE_META[lane].blurb,
+              rows: tasks.filter((t) => t.lane === lane),
+            }))
+        ).map((group) => {
+          const rows = [...group.rows].sort((a, b) => a.sortOrder - b.sortOrder);
           if (rows.length === 0) return null;
 
           return (
-            <div key={lane}>
+            <div key={group.key}>
               <div className="flex items-baseline gap-2 mb-2.5">
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">
-                  {LANE_META[lane].label}
+                  {group.heading}
                 </h3>
-                <span className="text-[11px] text-ink-faint">· {LANE_META[lane].blurb}</span>
+                {group.blurb ? (
+                  <span className="text-[11px] text-ink-faint">· {group.blurb}</span>
+                ) : (
+                  <span className="text-[11px] text-ink-faint">
+                    · {rows.filter((t) => t.lane === 'Done').length} of {rows.length} done
+                  </span>
+                )}
               </div>
 
               <ul className="space-y-2">

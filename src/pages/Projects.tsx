@@ -63,15 +63,21 @@ const PRIORITY_CLASS: Record<string, string> = {
 let seq = 0;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
-type TaskForm = { title: string; tag: string; dueDate: string };
-const blankTask = (): TaskForm => ({ title: '', tag: 'Medium', dueDate: '' });
+type TaskForm = { title: string; tag: string; dueDate: string; phaseId: string };
+const blankTask = (): TaskForm => ({ title: '', tag: 'Medium', dueDate: '', phaseId: '' });
 
 export default function Projects() {
-  const { projects, projectTasks, clientFor, add, update, remove, addDeliverable } = useStudio();
+  const { projects, projectTasks, clientFor, add, update, remove, addDeliverable, addPhase } =
+    useStudio();
 
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isNewOpen, setIsNewOpen] = useState(false);
+  // Board can be narrowed to one phase, which is also how tasks get organised
+  // into phases after the fact.
+  const [phaseFilter, setPhaseFilter] = useState<string>('all');
+  const [addingPhase, setAddingPhase] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState('');
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const visibleProjects = useMemo(
@@ -96,11 +102,14 @@ export default function Projects() {
     if (!selected) return grouped;
     for (const task of projectTasks) {
       if (task.projectId !== selected.id) continue;
+      if (phaseFilter === 'unassigned' && task.phaseId) continue;
+      if (phaseFilter !== 'all' && phaseFilter !== 'unassigned' && task.phaseId !== phaseFilter)
+        continue;
       (grouped[task.lane] ?? grouped.Todo).push(task);
     }
     for (const lane of LANES) grouped[lane].sort((a, b) => a.sortOrder - b.sortOrder);
     return grouped;
-  }, [projectTasks, selected]);
+  }, [projectTasks, selected, phaseFilter]);
 
   const [taskModal, setTaskModal] = useState<{ lane: TaskLane; editing: ProjectTask | null } | null>(
     null,
@@ -131,6 +140,7 @@ export default function Projects() {
       title: task.title,
       tag: task.tags[0] ?? 'Medium',
       dueDate: task.dueDate,
+      phaseId: task.phaseId ?? '',
     });
     setTaskModal({ lane: task.lane, editing: task });
   };
@@ -148,6 +158,7 @@ export default function Projects() {
         title: taskForm.title.trim(),
         tags: [taskForm.tag],
         dueDate: taskForm.dueDate,
+        phaseId: taskForm.phaseId || undefined,
       });
       toast.success('Task updated');
     } else {
@@ -157,6 +168,7 @@ export default function Projects() {
         title: taskForm.title.trim(),
         tags: [taskForm.tag],
         dueDate: taskForm.dueDate,
+        phaseId: taskForm.phaseId || (phaseFilter !== 'all' ? phaseFilter : undefined),
         assignee: 'RM',
         subtasks: [],
         clientVisible: true,
@@ -337,6 +349,86 @@ export default function Projects() {
                     appears in the client's portal.
                   </div>
                 ) : null}
+
+                {/* Phases live on the project; this is where tasks get sorted
+                    into them, including tasks created before the phase existed. */}
+                <div className="flex items-center gap-2 flex-wrap mb-4 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-faint mr-1">
+                    Phases
+                  </span>
+
+                  {(() => {
+                    const all = projectTasks.filter((t) => t.projectId === selected.id);
+                    const chip = (key: string, label: string, count: number) => (
+                      <button
+                        key={key}
+                        onClick={() => setPhaseFilter(key)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-[11.5px] font-bold transition-colors',
+                          phaseFilter === key
+                            ? 'bg-night text-white'
+                            : 'bg-surface-2 text-ink-soft hover:text-ink',
+                        )}
+                      >
+                        {label} <span className="opacity-60">{count}</span>
+                      </button>
+                    );
+                    const unassigned = all.filter((t) => !t.phaseId).length;
+                    return (
+                      <>
+                        {chip('all', 'All', all.length)}
+                        {selected.phases.map((ph, i) =>
+                          chip(
+                            ph.id,
+                            `${i + 1}. ${ph.name}`,
+                            all.filter((t) => t.phaseId === ph.id).length,
+                          ),
+                        )}
+                        {unassigned > 0 ? chip('unassigned', 'Unassigned', unassigned) : null}
+                      </>
+                    );
+                  })()}
+
+                  {addingPhase ? (
+                    <span className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={newPhaseName}
+                        onChange={(e) => setNewPhaseName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setAddingPhase(false);
+                          if (e.key !== 'Enter') return;
+                          if (!newPhaseName.trim()) return;
+                          addPhase(selected.id, newPhaseName.trim(), 0);
+                          setNewPhaseName('');
+                          setAddingPhase(false);
+                          toast.success('Phase added');
+                        }}
+                        placeholder="Phase name"
+                        className="px-3 py-1.5 w-44 bg-surface border border-line rounded-full text-[12px] text-ink outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                      />
+                      <button
+                        onClick={() => {
+                          if (!newPhaseName.trim()) return;
+                          addPhase(selected.id, newPhaseName.trim(), 0);
+                          setNewPhaseName('');
+                          setAddingPhase(false);
+                          toast.success('Phase added');
+                        }}
+                        className="text-[11.5px] font-bold text-orange hover:text-orange-deep"
+                      >
+                        Add
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setAddingPhase(true)}
+                      className="px-3 py-1.5 rounded-full border border-dashed border-line text-[11.5px] font-bold text-ink-soft hover:border-orange hover:text-orange transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Phase
+                    </button>
+                  )}
+                </div>
 
                 <div className="flex-1 overflow-x-auto pb-4">
                   <div className="flex gap-6 h-full min-w-max">
@@ -582,6 +674,31 @@ export default function Projects() {
                                 )}
                               </div>
 
+                              {selected.phases.length > 0 ? (
+                                <select
+                                  value={task.phaseId ?? ''}
+                                  onChange={(e) =>
+                                    update('projectTasks', task.id, {
+                                      phaseId: e.target.value || undefined,
+                                    })
+                                  }
+                                  aria-label="Phase"
+                                  className={cn(
+                                    'w-full mb-2 px-2 py-1 rounded-md text-[11px] font-bold border outline-none cursor-pointer',
+                                    task.phaseId
+                                      ? 'bg-purple-dim text-purple border-purple/30'
+                                      : 'bg-surface-2 text-ink-faint border-line',
+                                  )}
+                                >
+                                  <option value="">No phase</option>
+                                  {selected.phases.map((ph, i) => (
+                                    <option key={ph.id} value={ph.id}>
+                                      {i + 1}. {ph.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : null}
+
                               <div className="flex items-center justify-between mt-auto pt-3 border-t border-line">
                                 <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-soft bg-surface-2 px-2 py-1 rounded-md">
                                   <Clock size={12} className="text-ink-faint" />
@@ -752,6 +869,21 @@ export default function Projects() {
               />
             </Field>
           </div>
+          {selected && selected.phases.length > 0 ? (
+            <Field label="Phase" hint="Groups this task under a phase of the project">
+              <Select
+                value={taskForm.phaseId}
+                onChange={(e) => setTaskForm({ ...taskForm, phaseId: e.target.value })}
+              >
+                <option value="">No phase</option>
+                {selected.phases.map((ph, i) => (
+                  <option key={ph.id} value={ph.id}>
+                    {i + 1}. {ph.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
         </form>
       </Modal>
     </div>
