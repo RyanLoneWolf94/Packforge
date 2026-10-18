@@ -13,6 +13,8 @@ import type { Config } from '@netlify/functions';
  * Safety rails that matter more than features:
  *  - Quotes are always created as drafts. A model can propose pricing; only a
  *    human sends it to a client.
+ *  - Packages can be created but never sent. A model can build the catalogue;
+ *    putting a package in front of a client stays a human action.
  *  - There are no delete or update tools. The worst case is a stray draft.
  *  - Everything created is stamped with its origin, so AI-made records are
  *    identifiable after the fact.
@@ -68,6 +70,67 @@ const TOOLS = [
     description:
       'List reusable engagement blueprints (templates) across every business line — branding, software, web, marketing, ads. Each has a priced breakdown, a delivery workflow and a timeline. Use one to create a quote or project that matches how the studio actually sells and delivers that kind of work.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'list_packages',
+    description:
+      'List the package catalogue: named groups of priced tiers a client chooses between while the work is still being discussed (for example a Branding Package holding The Pup, The Wolf and Alpha Pack). Returns every tier with its price and inclusions. Check this before create_package so you do not duplicate one.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'create_package',
+    description:
+      'Create a package: a named group of priced tiers a client picks between. Supply all the tiers in one call. The package is added to the catalogue only; sending it to a client is a human action, so nothing here reaches a client. Use list_blueprints first if a tier should seed a delivery plan when chosen.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Package name, e.g. "Event Package".' },
+        description: {
+          type: 'string',
+          description: 'One or two sentences. Shown above the tiers in the client portal.',
+        },
+        category: { type: 'string', description: 'e.g. Branding, Digital Marketing, Software.' },
+        active: {
+          type: 'boolean',
+          description: 'Whether it can be included in new offers. Defaults to true.',
+        },
+        tiers: {
+          type: 'array',
+          description: 'The priced cards, cheapest first. Three is the usual number.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Tier name, e.g. "The Day Pack".' },
+              tagline: { type: 'string', description: 'One line on who it is for.' },
+              price: { type: 'number', description: 'Price in USD.' },
+              period: { type: 'string', description: '"one-off" or "per month". Default one-off.' },
+              features: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'What is included, one bullet per entry, as the client reads it.',
+              },
+              badge: { type: 'string', description: 'Ribbon text such as "Best Value". Optional.' },
+              accent: {
+                type: 'string',
+                enum: ['plain', 'outlined', 'featured'],
+                description:
+                  'Card styling. Use "featured" on the one tier being steered towards, "plain" otherwise.',
+              },
+              timelineDays: { type: 'number', description: 'Delivery time in days.' },
+              blueprintId: {
+                type: 'string',
+                description:
+                  'Optional. If set, choosing this tier seeds the project with that blueprint\'s phases.',
+              },
+            },
+            required: ['name', 'price'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['name', 'tiers'],
+      additionalProperties: false,
+    },
   },
   {
     name: 'list_projects',
@@ -202,6 +265,20 @@ const addDays = (days: number) =>
 const slugify = (v: string) =>
   v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'client';
 
+interface PackageTier {
+  name: string;
+  tagline?: string;
+  price: number;
+  period?: string;
+  features?: string[];
+  badge?: string;
+  accent?: string;
+  timelineDays?: number;
+  blueprintId?: string;
+}
+
+const ACCENTS = new Set(['plain', 'outlined', 'featured']);
+
 interface Milestone {
   id: string;
   title: string;
@@ -267,6 +344,98 @@ async function runTool(name: string, args: Json) {
           timelineDays: b.timelineDays,
         })),
       );
+    }
+
+    case 'list_packages': {
+      const rows = await pgSelect<{
+        id: string;
+        name: string;
+        description: string;
+        category: string;
+        active: boolean;
+        tiers: PackageTier[];
+      }>('packages', { select: 'id,name,description,category,active,tiers,sortOrder' });
+      return text(
+        rows.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          category: p.category,
+          active: p.active,
+          tiers: (p.tiers ?? []).map((t) => ({
+            name: t.name,
+            priceUsd: t.price,
+            period: t.period,
+            tagline: t.tagline,
+            features: t.features,
+            timelineDays: t.timelineDays,
+            blueprintId: t.blueprintId,
+          })),
+        })),
+      );
+    }
+
+    case 'create_package': {
+      const name = String(args.name ?? '').trim();
+      if (!name) return fail('A package name is required.');
+      if (!Array.isArray(args.tiers) || args.tiers.length === 0) {
+        return fail('At least one tier is required. A package is the group; tiers are the cards.');
+      }
+
+      // Any blueprint a tier points at must exist, or choosing that tier would
+      // silently create a project with no phases.
+      const referenced = [
+        ...new Set(
+          (args.tiers as PackageTier[])
+            .map((t) => String(t.blueprintId ?? '').trim())
+            .filter(Boolean),
+        ),
+      ];
+      if (referenced.length) {
+        const found = await pgSelect<{ id: string }>('blueprints', { select: 'id' });
+        const known = new Set(found.map((b) => b.id));
+        const missing = referenced.filter((id) => !known.has(id));
+        if (missing.length) {
+          return fail(
+            `No blueprint with id ${missing.join(', ')}. Call list_blueprints, or omit blueprintId.`,
+          );
+        }
+      }
+
+      const tiers = (args.tiers as PackageTier[]).map((t) => ({
+        id: uid('tr'),
+        name: String(t.name ?? '').trim() || 'Tier',
+        tagline: String(t.tagline ?? ''),
+        price: Number(t.price) || 0,
+        period: String(t.period ?? 'one-off'),
+        features: Array.isArray(t.features) ? t.features.map((f) => String(f)) : [],
+        badge: String(t.badge ?? ''),
+        accent: ACCENTS.has(String(t.accent)) ? String(t.accent) : 'plain',
+        timelineDays: Number(t.timelineDays) || 28,
+        blueprintId: String(t.blueprintId ?? '').trim() || undefined,
+      }));
+
+      const data = await pgInsert<{ id: string; name: string }>('packages', {
+        id: uid('pk'),
+        name,
+        // No origin stamp here: description is client-facing copy, unlike a
+        // lead's internal notes.
+        description: String(args.description ?? ''),
+        category: String(args.category ?? 'Other'),
+        tiers,
+        active: args.active === false ? false : true,
+        sortOrder: (await pgCount('packages')) + 1,
+        createdAt: today(),
+      });
+
+      return text({
+        created: 'package',
+        id: data.id,
+        name: data.name,
+        tiers: tiers.map((t) => ({ name: t.name, priceUsd: t.price })),
+        editUrl: `${SITE}/admin/packages/${data.id}`,
+        note: 'In the catalogue only. Sending it to a client is done by hand in Packforge.',
+      });
     }
 
     case 'list_projects': {

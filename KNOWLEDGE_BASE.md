@@ -296,6 +296,10 @@ the portal must see) — and re-run the security advisor after any DDL.
 
 ## 8c. Packages, offers, and client self-registration (built 2026-10-18)
 
+> Full reference: [`docs/packages-system.md`](docs/packages-system.md) — model,
+> flows, RPC contracts, security notes and gotchas. The summary below is the
+> short version.
+
 **Packages are not blueprints.** Blueprints speed up *quoting* — they are
 internal delivery plans. Packages are what a prospect reads *while the work is
 still being discussed*: priced cards they choose between.
