@@ -564,6 +564,19 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (req.method === 'OPTIONS') return json({}, 204);
 
+  /*
+   * OAuth discovery must 404.
+   *
+   * The SPA catch-all answers every unknown path with index.html and a 200,
+   * so a client probing /.well-known/oauth-authorization-server sees HTML,
+   * concludes there is a sign-in service, and fails trying to register with
+   * it. This server authenticates with a bearer token, not OAuth, so the
+   * honest answer to those probes is "no such thing here".
+   */
+  if (url.pathname.startsWith('/.well-known/')) {
+    return json({ error: 'This server uses bearer token auth, not OAuth.' }, 404);
+  }
+
   // Health check, deliberately before the auth gate: if the token is the thing
   // that is missing, you still need a way to see that. Reports only whether
   // each variable is present — never a value.
@@ -644,5 +657,15 @@ export default async function handler(req: Request): Promise<Response> {
 }
 
 export const config: Config = {
-  path: ['/mcp', '/mcp/:token'],
+  path: [
+    '/mcp',
+    '/mcp/:token',
+    // Claimed so the SPA catch-all cannot answer OAuth probes with HTML.
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/oauth-authorization-server/*',
+    '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-protected-resource/*',
+    '/.well-known/openid-configuration',
+    '/.well-known/openid-configuration/*',
+  ],
 };
