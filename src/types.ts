@@ -403,7 +403,16 @@ export const BLUEPRINT_CATEGORIES = [
  * quoting and delivery; a package may point at one so that choosing it seeds
  * a real delivery plan, but it doesn't have to.
  */
-export interface Package {
+export type PackageAccent = 'plain' | 'outlined' | 'featured';
+
+/**
+ * One priced card inside a package — "The Pup", "The Wolf".
+ *
+ * Tiers only exist inside their package: they are created, edited and sent
+ * together, and nothing references a tier from outside, so they live in the
+ * package row rather than a table of their own.
+ */
+export interface PackageTier {
   id: string;
   name: string;
   tagline: string;
@@ -415,24 +424,37 @@ export interface Package {
   /** Ribbon text such as "Best Value". Empty for none. */
   badge: string;
   accent: PackageAccent;
-  category: string;
   timelineDays: number;
-  /** Optional link to the delivery plan used when this package is chosen. */
+  /** Optional delivery plan used when a client picks this tier. */
   blueprintId?: string;
+}
+
+/**
+ * A named set of tiers — "Branding Package", "Social Media Package".
+ *
+ * This is the unit you build and the unit you send: a client receives the
+ * whole package and picks one tier from it.
+ */
+export interface Package {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tiers: PackageTier[];
   active: boolean;
   sortOrder: number;
   createdAt: string;
 }
 
-export type PackageAccent = 'plain' | 'outlined' | 'featured';
-
 /**
- * One option inside an offer. A snapshot taken when the offer was sent, so
- * later edits to the package can't silently change what a client was shown.
+ * One option inside an offer. A snapshot of a tier taken when the offer was
+ * sent, so later edits to the package can't silently change what a client was
+ * shown.
  */
 export interface OfferOption {
   id: string;
-  packageId?: string;
+  /** The tier this was copied from, if it still exists. */
+  tierId?: string;
   name: string;
   description: string;
   priceUsd: number;
@@ -447,12 +469,14 @@ export interface OfferOption {
 export type OfferStatus = 'draft' | 'sent' | 'accepted' | 'withdrawn';
 
 /**
- * A set of packages sent to one client to choose between. When they pick one,
- * the database creates the project and closes the offer in a single step.
+ * A package sent to one client to choose a tier from. When they pick one, the
+ * database creates the project and closes the offer in a single step.
  */
 export interface Offer {
   id: string;
   clientId: string;
+  /** The package it was built from. Kept for reporting; options are the truth. */
+  packageId?: string;
   title: string;
   intro: string;
   status: OfferStatus;

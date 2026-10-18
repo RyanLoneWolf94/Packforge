@@ -125,6 +125,7 @@ export default function App() {
                           <Route path="/contracts" element={<Contracts />} />
                           <Route path="/blueprints" element={<Blueprints />} />
                           <Route path="/packages" element={<PackagesPage />} />
+                          <Route path="/packages/:packageId" element={<PackagesPage />} />
                           <Route path="/timelines" element={<Navigate to="/admin/blueprints" replace />} />
                           <Route path="/time" element={<TimeTracking />} />
                           <Route path="/overview" element={<Overview />} />
