@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Config } from '@netlify/functions';
 
 /**
@@ -29,9 +29,19 @@ const MCP_TOKEN = process.env.MCP_TOKEN;
 const SITE = 'https://portal.lonewolfdigitech.com';
 const ORIGIN_NOTE = 'Created via MCP';
 
-const db = createClient(SUPABASE_URL ?? '', SERVICE_KEY ?? '', {
-  auth: { persistSession: false },
-});
+/**
+ * Built on first use, not at import time: a missing env var should surface as
+ * a clean error from the handler, not crash the module and return a bare 502.
+ */
+let client: SupabaseClient | null = null;
+function getDb() {
+  if (!client) {
+    client = createClient(SUPABASE_URL as string, SERVICE_KEY as string, {
+      auth: { persistSession: false },
+    });
+  }
+  return client;
+}
 
 /* ------------------------------ JSON-RPC ------------------------------ */
 
@@ -244,7 +254,7 @@ const freshTimeline = (timeline: any[]) =>
 async function runTool(name: string, args: Json) {
   switch (name) {
     case 'list_clients': {
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('clients')
         .select('id,name,contactName,email,phone,location,industry,status,portalToken');
       if (error) return fail(error.message);
@@ -254,7 +264,7 @@ async function runTool(name: string, args: Json) {
     }
 
     case 'list_blueprints': {
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('blueprints')
         .select('id,title,category,description,milestones,timelineDays');
       if (error) return fail(error.message);
@@ -271,7 +281,7 @@ async function runTool(name: string, args: Json) {
     }
 
     case 'list_projects': {
-      let q = db.from('projects').select('id,name,clientId,ref,status,startDate,targetDelivery,phases');
+      let q = getDb().from('projects').select('id,name,clientId,ref,status,startDate,targetDelivery,phases');
       if (typeof args.clientId === 'string') q = q.eq('clientId', args.clientId);
       const { data, error } = await q;
       if (error) return fail(error.message);
@@ -299,18 +309,18 @@ async function runTool(name: string, args: Json) {
 
     case 'get_project': {
       const id = String(args.projectId ?? '');
-      const { data: project, error } = await db
+      const { data: project, error } = await getDb()
         .from('projects')
         .select('*')
         .eq('id', id)
         .maybeSingle();
       if (error) return fail(error.message);
       if (!project) return fail(`No project with id ${id}`);
-      const { data: tasks } = await db
+      const { data: tasks } = await getDb()
         .from('projectTasks')
         .select('id,title,lane,phaseId,dueDate,clientVisible')
         .eq('projectId', id);
-      const { data: invoices } = await db
+      const { data: invoices } = await getDb()
         .from('invoices')
         .select('id,number,amount,status,dueDate')
         .eq('projectId', id);
@@ -322,13 +332,13 @@ async function runTool(name: string, args: Json) {
       if (!name) return fail('A client name is required.');
 
       // portalToken is unique — suffix until free, as the app does.
-      const { data: existing } = await db.from('clients').select('portalToken');
+      const { data: existing } = await getDb().from('clients').select('portalToken');
       const taken = new Set((existing ?? []).map((c) => c.portalToken));
       const base = slugify(name);
       let portalToken = base;
       for (let n = 2; taken.has(portalToken); n++) portalToken = `${base}-${n}`;
 
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('clients')
         .insert({
           id: uid('cl'),
@@ -356,7 +366,7 @@ async function runTool(name: string, args: Json) {
     case 'create_lead': {
       const name = String(args.name ?? '').trim();
       if (!name) return fail('A lead name is required.');
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('leads')
         .insert({
           id: uid('ld'),
@@ -381,7 +391,7 @@ async function runTool(name: string, args: Json) {
       const title = String(args.title ?? '').trim();
       if (!clientId || !title) return fail('clientId and title are required.');
 
-      const { data: client } = await db
+      const { data: client } = await getDb()
         .from('clients')
         .select('id,name')
         .eq('id', clientId)
@@ -392,7 +402,7 @@ async function runTool(name: string, args: Json) {
       let timelineDays = typeof args.timelineDays === 'number' ? args.timelineDays : 0;
 
       if (typeof args.blueprintId === 'string' && args.blueprintId) {
-        const { data: bp } = await db
+        const { data: bp } = await getDb()
           .from('blueprints')
           .select('milestones,timelineDays')
           .eq('id', args.blueprintId)
@@ -418,11 +428,11 @@ async function runTool(name: string, args: Json) {
         return fail('The breakdown has no priced line items.');
       }
 
-      const { count } = await db.from('quotes').select('id', { count: 'exact', head: true });
+      const { count } = await getDb().from('quotes').select('id', { count: 'exact', head: true });
       const number = `QT-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(3, '0')}`;
       const validDays = typeof args.validDays === 'number' ? args.validDays : 30;
 
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('quotes')
         .insert({
           id: uid('qt'),
@@ -456,7 +466,7 @@ async function runTool(name: string, args: Json) {
       const name = String(args.name ?? '').trim();
       if (!clientId || !name) return fail('clientId and name are required.');
 
-      const { data: client } = await db
+      const { data: client } = await getDb()
         .from('clients')
         .select('id,name')
         .eq('id', clientId)
@@ -471,7 +481,7 @@ async function runTool(name: string, args: Json) {
       let days = 28;
 
       if (typeof args.blueprintId === 'string' && args.blueprintId) {
-        const { data: bp } = await db
+        const { data: bp } = await getDb()
           .from('blueprints')
           .select('title,phases,timeline,timelineDays')
           .eq('id', args.blueprintId)
@@ -484,7 +494,7 @@ async function runTool(name: string, args: Json) {
       }
 
       const start = String(args.startDate ?? today());
-      const { data, error } = await db
+      const { data, error } = await getDb()
         .from('projects')
         .insert({
           id: uid('pr'),
@@ -554,16 +564,32 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (req.method === 'OPTIONS') return json({}, 204);
 
+  // Health check, deliberately before the auth gate: if the token is the thing
+  // that is missing, you still need a way to see that. Reports only whether
+  // each variable is present — never a value.
+  if (req.method === 'GET') {
+    const configured = {
+      supabaseUrl: Boolean(SUPABASE_URL),
+      serviceRoleKey: Boolean(SERVICE_KEY),
+      mcpToken: Boolean(MCP_TOKEN),
+    };
+    const ready = Object.values(configured).every(Boolean);
+    return json({
+      name: 'packforge',
+      status: ready ? 'ok' : 'misconfigured',
+      configured,
+      tools: ready ? TOOLS.map((t) => t.name) : [],
+      hint: ready
+        ? undefined
+        : 'Set the missing Netlify environment variables, then redeploy.',
+    });
+  }
+
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return json({ error: 'Server is missing Supabase credentials.' }, 500);
   }
   if (!authorise(req, url)) {
     return json({ error: 'Unauthorised.' }, 401);
-  }
-
-  // A plain GET is handy for checking the endpoint is alive.
-  if (req.method === 'GET') {
-    return json({ name: 'packforge', status: 'ok', tools: TOOLS.map((t) => t.name) });
   }
 
   let body: Json;
