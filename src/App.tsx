@@ -15,6 +15,7 @@ import ProjectTracker from "./pages/ProjectTracker";
 import PortalLayout from "./pages/portal/PortalLayout";
 import PortalOverview from "./pages/portal/PortalOverview";
 import PortalProgress from "./pages/portal/PortalProgress";
+import PortalPackages from "./pages/portal/PortalPackages";
 import {
   PortalContracts,
   PortalFiles,
@@ -33,6 +34,8 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Quotations = lazy(() => import("./pages/Quotations"));
 const Blueprints = lazy(() => import("./pages/Blueprints"));
+const PackagesPage = lazy(() => import("./pages/Packages"));
+const JoinClient = lazy(() => import("./pages/JoinClient"));
 const Overview = lazy(() => import("./pages/Overview"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const Teams = lazy(() => import("./pages/Teams"));
@@ -62,6 +65,15 @@ export default function App() {
                 phase tracker as one section of it. `/portal/:token` is the
                 shareable link, fed by the read-only `portal_snapshot` RPC. */}
             <Route path="/" element={<Navigate to="/admin" replace />} />
+            {/* Public client sign-up. The code is checked server-side. */}
+            <Route
+              path="/join/:code"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <JoinClient />
+                </Suspense>
+              }
+            />
             <Route
               path="/portal"
               element={
@@ -86,6 +98,7 @@ export default function App() {
               <Route path="quotes" element={<PortalQuotes />} />
               <Route path="files" element={<PortalFiles />} />
               <Route path="contracts" element={<PortalContracts />} />
+              <Route path="packages" element={<PortalPackages />} />
               {/* Unknown portal sub-path → back to the client's overview. */}
               <Route path="*" element={<PortalOverview />} />
             </Route>
@@ -111,6 +124,7 @@ export default function App() {
                           <Route path="/quotations" element={<Quotations />} />
                           <Route path="/contracts" element={<Contracts />} />
                           <Route path="/blueprints" element={<Blueprints />} />
+                          <Route path="/packages" element={<PackagesPage />} />
                           <Route path="/timelines" element={<Navigate to="/admin/blueprints" replace />} />
                           <Route path="/time" element={<TimeTracking />} />
                           <Route path="/overview" element={<Overview />} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { SEED } from '../data/seed';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,7 @@ import type {
   Contract,
   FileAsset,
   Invoice,
+  Offer,
   Project,
   ProjectTask,
   Quote,
@@ -37,6 +38,8 @@ interface Snapshot {
   files: FileAsset[];
   /** Board tasks the studio has marked visible, for this client's projects. */
   tasks: ProjectTask[];
+  /** Package sets sent to this client. */
+  offers: Offer[];
   settings: StudioSettings | null;
 }
 
@@ -52,18 +55,22 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!token) {
-      setSnapshot(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    supabase.rpc('portal_snapshot', { p_token: token }).then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !data) {
+  /**
+   * Pulls the snapshot. `quiet` skips the spinner, for re-reads after an action
+   * the client has already seen confirmed (picking a package, say) — the page
+   * stays put rather than blanking out.
+   */
+  const load = useCallback(
+    async ({ quiet = false }: { quiet?: boolean } = {}) => {
+      if (!token) {
         setSnapshot(null);
+        setLoading(false);
+        return;
+      }
+      if (!quiet) setLoading(true);
+      const { data, error } = await supabase.rpc('portal_snapshot', { p_token: token });
+      if (error || !data) {
+        if (!quiet) setSnapshot(null);
       } else {
         const snap = data as Snapshot;
         setSnapshot(snap);
@@ -71,11 +78,13 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         setContracts(snap.contracts ?? []);
       }
       setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+    },
+    [token],
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const value = useMemo(() => {
     const client = snapshot?.client;
@@ -98,12 +107,15 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       projectTasks: snapshot?.tasks ?? [],
       emailTemplates: [],
       blueprints: [],
+      packages: [],
+      // Offers carry a snapshot of each package, so the catalogue stays internal.
+      offers: snapshot?.offers ?? [],
       campaigns: [],
       newsletters: [],
       settings,
 
       loading,
-      refresh: async () => undefined,
+      refresh: () => load({ quiet: true }),
 
       /**
        * The only writes the portal permits: a client responding to a quote, and
@@ -188,7 +200,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       }) as never,
       deleteClient: noop,
     };
-  }, [snapshot, quotes, contracts, loading, token]);
+  }, [snapshot, quotes, contracts, loading, token, load]);
 
   if (loading) {
     return (

@@ -640,6 +640,7 @@ const settings: StudioSettings = {
   whatsapp: STUDIO.whatsapp,
   address: 'Hanoi, Vietnam · Harare, Zimbabwe',
   lead: STUDIO.lead,
+  joinCode: '',
   notifications: {
     quoteAccepted: true,
     invoicePaid: true,

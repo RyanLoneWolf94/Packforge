@@ -1,4 +1,4 @@
-import { Archive, ChatCircle, Envelope, Gauge, Receipt, Scroll, ShieldCheck, Signature, SquaresFour } from '@phosphor-icons/react';
+import { Archive, ChatCircle, Envelope, Gauge, Receipt, Scroll, ShieldCheck, Signature, SquaresFour, Stack } from '@phosphor-icons/react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { Card, EmptyState } from '@/src/components/ui';
 import { Logo } from '@/src/components/Logo';
@@ -23,9 +23,11 @@ const NAV = [
   { to: 'contracts', label: 'Contracts', icon: Signature },
 ];
 
+const PACKAGES_NAV = { to: 'packages', label: 'Packages', icon: Stack, end: false };
+
 export default function PortalLayout() {
   const { token } = useParams();
-  const { clients, clientByToken } = useStudio();
+  const { clients, clientByToken, offers } = useStudio();
 
   // A bare `/portal` falls back to the first client so the view is previewable.
   const client = token ? clientByToken(token) : clients[0];
@@ -46,13 +48,17 @@ export default function PortalLayout() {
 
   const base = `/portal/${client.portalToken}`;
 
+  // Packages only earns a tab once there is something to look at: an open
+  // set to choose from, or the one already chosen.
+  const nav = offers.length > 0 ? [...NAV, PACKAGES_NAV] : NAV;
+
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <PortalHeader client={client} />
 
       <nav className="border-b border-line bg-surface sticky top-[65px] z-30">
         <div className="max-w-[1120px] mx-auto px-6 lg:px-7 flex gap-1 overflow-x-auto scrollbar-none">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to ? `${base}/${item.to}` : base}

@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowCounterClockwise, Bell, Buildings, PlugsConnected, User } from '@phosphor-icons/react';
+import {
+  ArrowCounterClockwise,
+  ArrowsClockwise,
+  Bell,
+  Buildings,
+  Copy,
+  PlugsConnected,
+  UserPlus,
+  User,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -14,12 +23,13 @@ import { cn } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
 import type { StudioSettings } from '@/src/types';
 
-type TabId = 'studio' | 'notifications' | 'integrations' | 'data';
+type TabId = 'studio' | 'notifications' | 'integrations' | 'access' | 'data';
 
 const TABS: { id: TabId; label: string; icon: typeof User }[] = [
   { id: 'studio', label: 'Business Profile', icon: Buildings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'integrations', label: 'Integrations', icon: PlugsConnected },
+  { id: 'access', label: 'Client Sign-up', icon: UserPlus },
   { id: 'data', label: 'Data', icon: ArrowCounterClockwise },
 ];
 
@@ -79,6 +89,9 @@ export default function Settings() {
           ) : null}
           {tab === 'integrations' ? (
             <IntegrationSettings settings={settings} onSave={updateSettings} />
+          ) : null}
+          {tab === 'access' ? (
+            <ClientSignup settings={settings} onSave={updateSettings} />
           ) : null}
           {tab === 'data' ? <DataSettings onRefresh={refresh} /> : null}
         </div>
@@ -278,6 +291,93 @@ function DataSettings({ onRefresh }: { onRefresh: () => Promise<void> }) {
       >
         {busy ? 'Reloading…' : 'Reload from cloud'}
       </Button>
+    </Card>
+  );
+}
+
+/**
+ * The client sign-up link.
+ *
+ * `joinCode` is the whole gate on `portal_register_client`, so it is treated
+ * like a shared secret: shown in full, copyable, and replaceable the moment it
+ * has been somewhere it should not have been. Rotating it immediately breaks
+ * every link already sent out, which is the point.
+ */
+function ClientSignup({
+  settings,
+  onSave,
+}: {
+  settings: StudioSettings;
+  onSave: (patch: Partial<StudioSettings>) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const code = settings.joinCode ?? '';
+  const link = code ? `${window.location.origin}/join/${code}` : '';
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copied');
+    } catch {
+      toast.error('Could not copy — select the link and copy it manually');
+    }
+  };
+
+  const rotate = () => {
+    const next = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+      .map((b) => b.toString(36).padStart(2, '0'))
+      .join('')
+      .slice(0, 18);
+    onSave({ joinCode: next });
+    setConfirming(false);
+    toast.success('New link generated — the old one no longer works');
+  };
+
+  return (
+    <Card className="p-7 space-y-6">
+      <div>
+        <h2 className="disp text-lg font-extrabold text-ink tracking-tight">
+          Client sign-up link
+        </h2>
+        <p className="text-[13.5px] text-ink-soft mt-1.5 leading-relaxed">
+          Send this to anyone you want in the portal. They fill in their details and get their
+          own portal straight away — no account or password needed.
+        </p>
+      </div>
+
+      {link ? (
+        <div className="flex gap-2 flex-wrap">
+          <Input readOnly value={link} className="flex-1 min-w-[260px] font-mono text-[12.5px]" />
+          <Button variant="secondary" icon={Copy} onClick={copy}>
+            Copy
+          </Button>
+        </div>
+      ) : (
+        <p className="text-[13.5px] text-ink-soft">
+          No link yet — generate one to start inviting clients.
+        </p>
+      )}
+
+      <div className="pt-5 border-t border-line space-y-3">
+        <p className="text-[12.5px] text-ink-soft leading-relaxed">
+          Anyone with the link can register, so treat it like a password. Replacing it breaks
+          every copy already sent out.
+        </p>
+        {confirming ? (
+          <div className="flex gap-2">
+            <Button variant="danger" onClick={rotate}>
+              Yes, replace it
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button variant="secondary" icon={ArrowsClockwise} onClick={() => setConfirming(true)}>
+            {link ? 'Generate a new link' : 'Generate link'}
+          </Button>
+        )}
+      </div>
     </Card>
   );
 }

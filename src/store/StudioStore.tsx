@@ -23,6 +23,8 @@ import type {
   Lead,
   Newsletter,
   Blueprint,
+  Offer,
+  Package,
   Project,
   ProjectTask,
   Quote,
@@ -63,6 +65,8 @@ interface Collections {
   projectTasks: ProjectTask[];
   emailTemplates: EmailTemplate[];
   blueprints: Blueprint[];
+  packages: Package[];
+  offers: Offer[];
   campaigns: Campaign[];
   newsletters: Newsletter[];
 }
@@ -93,6 +97,8 @@ const COLLECTION_KEYS: CollectionKey[] = [
   'projectTasks',
   'emailTemplates',
   'blueprints',
+  'packages',
+  'offers',
   'campaigns',
   'newsletters',
 ];
@@ -223,6 +229,8 @@ const EMPTY_STATE: StudioState = {
   projectTasks: [],
   emailTemplates: [],
   blueprints: [],
+  packages: [],
+  offers: [],
   campaigns: [],
   newsletters: [],
   settings: SEED.settings,

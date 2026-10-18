@@ -325,6 +325,11 @@ export interface StudioSettings {
   whatsapp: string;
   address: string;
   lead: string;
+  /**
+   * Code embedded in the client self-registration link. Rotating it
+   * invalidates every link already handed out.
+   */
+  joinCode: string;
   /** Notification preferences, keyed by event. */
   notifications: {
     quoteAccepted: boolean;
@@ -389,6 +394,76 @@ export const BLUEPRINT_CATEGORIES = [
   'Video & Motion',
   'Other',
 ] as const;
+
+/* ------------------------------- Packages ------------------------------ */
+
+/**
+ * A priced option shown to a client while the work is still being discussed —
+ * the pricing cards. Distinct from a Blueprint, which exists to speed up
+ * quoting and delivery; a package may point at one so that choosing it seeds
+ * a real delivery plan, but it doesn't have to.
+ */
+export interface Package {
+  id: string;
+  name: string;
+  tagline: string;
+  price: number;
+  /** e.g. "one-off", "per month" — shown beside the price. */
+  period: string;
+  /** Bullet list, exactly as the client reads it. */
+  features: string[];
+  /** Ribbon text such as "Best Value". Empty for none. */
+  badge: string;
+  accent: PackageAccent;
+  category: string;
+  timelineDays: number;
+  /** Optional link to the delivery plan used when this package is chosen. */
+  blueprintId?: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export type PackageAccent = 'plain' | 'outlined' | 'featured';
+
+/**
+ * One option inside an offer. A snapshot taken when the offer was sent, so
+ * later edits to the package can't silently change what a client was shown.
+ */
+export interface OfferOption {
+  id: string;
+  packageId?: string;
+  name: string;
+  description: string;
+  priceUsd: number;
+  period: string;
+  features: string[];
+  badge: string;
+  accent: PackageAccent;
+  timelineDays: number;
+  blueprintId?: string;
+}
+
+export type OfferStatus = 'draft' | 'sent' | 'accepted' | 'withdrawn';
+
+/**
+ * A set of packages sent to one client to choose between. When they pick one,
+ * the database creates the project and closes the offer in a single step.
+ */
+export interface Offer {
+  id: string;
+  clientId: string;
+  title: string;
+  intro: string;
+  status: OfferStatus;
+  options: OfferOption[];
+  selectedOptionId?: string;
+  selectedAt?: string;
+  /** The project created on selection. */
+  projectId?: string;
+  expiresAt?: string;
+  createdAt: string;
+}
 
 /* ------------------------------ Marketing ------------------------------ */
 

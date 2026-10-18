@@ -145,17 +145,19 @@ src/
     ErrorBoundary.tsx
     Logo.tsx                  # <Logo variant="color|light"> w/ text fallback
     SignatureModal.tsx        # contract signing
+    PackageCard.tsx           # the pricing card — shared by admin catalogue + portal
     layout/DashboardLayout.tsx
     tracker/PhaseTracker.tsx  # THE shared tracker (admin+client)
     ui/index.tsx              # design-system primitives (see §5)
   pages/
     Dashboard, Overview, Projects, ProjectTracker, Clients, Leads,
-    Quotations, Invoices, Contracts, Timelines, TimeTracking, Expenses,
-    Teams, Files, Emails, Settings
+    Quotations, Invoices, Contracts, Blueprints, Packages, TimeTracking,
+    Expenses, Teams, Files, Emails, Settings
+    JoinClient                # public /join/:code client sign-up
     marketing/  Campaigns, Newsletters, Integrations
     portal/     PortalLayout, PortalOverview, PortalProgress,
                 PortalBilling (PortalInvoices/Quotes/Files/Contracts),
-                usePortalClient.ts
+                PortalPackages, usePortalClient.ts
 public/
   README-logo.md              # expected: lonewolf-logo.png, lonewolf-logo-light.png, favicon.png
 scripts/
@@ -291,6 +293,54 @@ the portal must see) — and re-run the security advisor after any DDL.
   signature was captured and thrown away, and its "Upload" tab was a stub that
   signed with a placeholder string. Render stored signatures with
   `<SignaturePreview>`.
+
+## 8c. Packages, offers, and client self-registration (built 2026-10-18)
+
+**Packages are not blueprints.** Blueprints speed up *quoting* — they are
+internal delivery plans. Packages are what a prospect reads *while the work is
+still being discussed*: priced cards they choose between. The two are linked by
+one optional field (`Package.blueprintId`), and that link is one-directional:
+picking a package can seed a project's phases from a blueprint, never the
+reverse.
+
+The flow:
+
+1. **`/admin/packages`** (`src/pages/Packages.tsx`) — the catalogue. Create,
+   edit, duplicate, hide and delete packages, with a live client-eye preview
+   beside the form.
+2. **Send to client** builds an `offers` row with `status: 'sent'`. Each chosen
+   package is **snapshotted** into `Offer.options` (`OfferOption`), so editing or
+   deleting a package later cannot change what a client was already shown. This
+   is why `OfferOption` duplicates the package fields instead of referencing
+   them.
+3. **`/portal/:token/packages`** (`src/pages/portal/PortalPackages.tsx`) — the
+   client picks one. The tab only appears once that client has an offer.
+4. **`portal_select_package(token, offerId, optionId)`** creates the project,
+   seeds its phases and timeline from the option's blueprint, and flips the
+   offer to `accepted` **in one statement**. A double-click, a stale tab or a
+   replay gets `"This selection has already been made."` rather than a second
+   project. Nothing in the portal is optimistic here — the server's answer is
+   what the page reports.
+
+Projects born this way start in `planning`: the client has chosen, the studio
+still confirms.
+
+**`PackageCard`** (`src/components/PackageCard.tsx`) is shared by the admin
+catalogue and the portal, so what you design is literally what the client sees.
+`accent` is `plain | outlined | featured`; `featured` is the purple fill with
+gold accents.
+
+**Client self-registration** lives at **`/join/:code`**
+(`src/pages/JoinClient.tsx`), a public route outside both the portal provider
+and the admin gate. `portal_register_client` checks the code against
+`settings."joinCode"` — that code is the *only* gate, so Settings → Client
+Sign-up treats it as a shared secret: shown in full, copyable, and rotatable
+(which immediately breaks every link already sent). The function **refuses to
+return a portal token for an email already on file**; otherwise the form would
+be a way to fish for another client's portal.
+
+**`PortalStore.refresh()` is real now.** It re-reads `portal_snapshot` quietly
+(no spinner), which is what the packages page calls after a selection.
 
 ## 9. Assets the user must supply
 

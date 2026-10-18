@@ -14,6 +14,7 @@ const settings = {
   whatsapp: '12898070728',
   address: 'Hanoi / Harare',
   lead: 'Ryan',
+  joinCode: '',
   notifications: { quoteAccepted: true, invoicePaid: true, contractExpiring: true, clientActionResolved: false },
   integrations: { mailchimp: false, sendgrid: false, whatsapp: false, stripe: false },
 };
