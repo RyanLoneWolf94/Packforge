@@ -8,7 +8,10 @@
   node_bundler = "esbuild"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # 22+: @supabase/supabase-js needs a global WebSocket for its realtime
+  # client, which Node only ships from 22. On 20 the MCP function threw
+  # "native WebSocket not found" on the first query.
+  NODE_VERSION = "22"
 
 # SPA fallback: every non-file path is served index.html so client-side
 # routing (/admin/*, /portal/:token/*) works on hard refresh and deep links.
