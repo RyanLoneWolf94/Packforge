@@ -577,9 +577,22 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: 'This server uses bearer token auth, not OAuth.' }, 404);
   }
 
-  // Health check, deliberately before the auth gate: if the token is the thing
-  // that is missing, you still need a way to see that. Reports only whether
-  // each variable is present — never a value.
+  /*
+   * A GET asking for an event stream is a client looking for the legacy
+   * HTTP+SSE transport. Answering it with JSON makes the client think the
+   * old transport is available and fall back to SSE/WebSocket, which this
+   * server does not speak. 405 tells it to stay on Streamable HTTP (POST).
+   */
+  if (req.method === 'GET' && (req.headers.get('accept') ?? '').includes('text/event-stream')) {
+    return new Response('Method Not Allowed — this server is POST-only (Streamable HTTP).', {
+      status: 405,
+      headers: { allow: 'POST', 'access-control-allow-origin': '*' },
+    });
+  }
+
+  // Plain GET is a health check, deliberately before the auth gate: if the
+  // token is the thing that is missing, you still need a way to see that.
+  // Reports only whether each variable is present — never a value.
   if (req.method === 'GET') {
     const configured = {
       supabaseUrl: Boolean(SUPABASE_URL),
@@ -624,14 +637,24 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   switch (method) {
-    case 'initialize':
+    case 'initialize': {
+      /*
+       * Echo the client's protocol version. Pinning an old one made clients
+       * negotiate down to the pre-Streamable-HTTP transport and then fail
+       * looking for a WebSocket. This server is plain JSON-RPC over POST, so
+       * any recent revision works.
+       */
+      const asked = (params as Json)?.protocolVersion;
+      const protocolVersion =
+        typeof asked === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : '2025-06-18';
       return json(
         rpcResult(id, {
-          protocolVersion: '2024-11-05',
+          protocolVersion,
           capabilities: { tools: { listChanged: false } },
           serverInfo: { name: 'packforge', version: '1.0.0' },
         }),
       );
+    }
 
     case 'ping':
       return json(rpcResult(id, {}));
