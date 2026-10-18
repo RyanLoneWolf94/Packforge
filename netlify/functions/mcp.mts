@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { pgCount, pgFirst, pgInsert, pgSelect } from './mcp-db.mts';
 import type { Config } from '@netlify/functions';
 
 /**
@@ -29,19 +29,7 @@ const MCP_TOKEN = process.env.MCP_TOKEN;
 const SITE = 'https://portal.lonewolfdigitech.com';
 const ORIGIN_NOTE = 'Created via MCP';
 
-/**
- * Built on first use, not at import time: a missing env var should surface as
- * a clean error from the handler, not crash the module and return a bare 502.
- */
-let client: SupabaseClient | null = null;
-function getDb() {
-  if (!client) {
-    client = createClient(SUPABASE_URL as string, SERVICE_KEY as string, {
-      auth: { persistSession: false },
-    });
-  }
-  return client;
-}
+
 
 /* ------------------------------ JSON-RPC ------------------------------ */
 
@@ -254,22 +242,23 @@ const freshTimeline = (timeline: any[]) =>
 async function runTool(name: string, args: Json) {
   switch (name) {
     case 'list_clients': {
-      const { data, error } = await getDb()
-        .from('clients')
-        .select('id,name,contactName,email,phone,location,industry,status,portalToken');
-      if (error) return fail(error.message);
-      return text(
-        (data ?? []).map((c) => ({ ...c, portalUrl: `${SITE}/portal/${c.portalToken}` })),
-      );
+      const rows = await pgSelect<{ portalToken: string }>('clients', {
+        select: 'id,name,contactName,email,phone,location,industry,status,portalToken',
+      });
+      return text(rows.map((c) => ({ ...c, portalUrl: `${SITE}/portal/${c.portalToken}` })));
     }
 
     case 'list_blueprints': {
-      const { data, error } = await getDb()
-        .from('blueprints')
-        .select('id,title,category,description,milestones,timelineDays');
-      if (error) return fail(error.message);
+      const rows = await pgSelect<{
+        id: string;
+        title: string;
+        category: string;
+        description: string;
+        milestones: Milestone[];
+        timelineDays: number;
+      }>('blueprints', { select: 'id,title,category,description,milestones,timelineDays' });
       return text(
-        (data ?? []).map((b) => ({
+        rows.map((b) => ({
           id: b.id,
           title: b.title,
           category: b.category,
@@ -281,12 +270,12 @@ async function runTool(name: string, args: Json) {
     }
 
     case 'list_projects': {
-      let q = getDb().from('projects').select('id,name,clientId,ref,status,startDate,targetDelivery,phases');
-      if (typeof args.clientId === 'string') q = q.eq('clientId', args.clientId);
-      const { data, error } = await q;
-      if (error) return fail(error.message);
+      const rows = await pgSelect<Record<string, unknown>>('projects', {
+        select: 'id,name,clientId,ref,status,startDate,targetDelivery,phases',
+        eq: { clientId: typeof args.clientId === 'string' ? args.clientId : undefined },
+      });
       return text(
-        (data ?? []).map((p) => {
+        rows.map((p) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const phases = (p.phases ?? []) as any[];
           const all = phases.flatMap((ph) => ph.deliverables ?? []);
@@ -309,22 +298,17 @@ async function runTool(name: string, args: Json) {
 
     case 'get_project': {
       const id = String(args.projectId ?? '');
-      const { data: project, error } = await getDb()
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      if (error) return fail(error.message);
+      const project = await pgFirst('projects', { eq: { id } });
       if (!project) return fail(`No project with id ${id}`);
-      const { data: tasks } = await getDb()
-        .from('projectTasks')
-        .select('id,title,lane,phaseId,dueDate,clientVisible')
-        .eq('projectId', id);
-      const { data: invoices } = await getDb()
-        .from('invoices')
-        .select('id,number,amount,status,dueDate')
-        .eq('projectId', id);
-      return text({ project, tasks: tasks ?? [], invoices: invoices ?? [] });
+      const tasks = await pgSelect('projectTasks', {
+        select: 'id,title,lane,phaseId,dueDate,clientVisible',
+        eq: { projectId: id },
+      });
+      const invoices = await pgSelect('invoices', {
+        select: 'id,number,amount,status,dueDate',
+        eq: { projectId: id },
+      });
+      return text({ project, tasks, invoices });
     }
 
     case 'create_client': {
@@ -332,15 +316,17 @@ async function runTool(name: string, args: Json) {
       if (!name) return fail('A client name is required.');
 
       // portalToken is unique — suffix until free, as the app does.
-      const { data: existing } = await getDb().from('clients').select('portalToken');
-      const taken = new Set((existing ?? []).map((c) => c.portalToken));
+      const existing = await pgSelect<{ portalToken: string }>('clients', {
+        select: 'portalToken',
+      });
+      const taken = new Set(existing.map((c) => c.portalToken));
       const base = slugify(name);
       let portalToken = base;
       for (let n = 2; taken.has(portalToken); n++) portalToken = `${base}-${n}`;
 
-      const { data, error } = await getDb()
-        .from('clients')
-        .insert({
+      const data = await pgInsert<{ id: string; name: string; portalToken: string }>(
+        'clients',
+        {
           id: uid('cl'),
           name,
           contactName: String(args.contactName ?? ''),
@@ -351,10 +337,8 @@ async function runTool(name: string, args: Json) {
           status: 'active',
           portalToken,
           createdAt: today(),
-        })
-        .select()
-        .single();
-      if (error) return fail(error.message);
+        },
+      );
       return text({
         created: 'client',
         id: data.id,
@@ -366,23 +350,18 @@ async function runTool(name: string, args: Json) {
     case 'create_lead': {
       const name = String(args.name ?? '').trim();
       if (!name) return fail('A lead name is required.');
-      const { data, error } = await getDb()
-        .from('leads')
-        .insert({
-          id: uid('ld'),
-          name,
-          contactName: String(args.contactName ?? ''),
-          email: String(args.email ?? ''),
-          phone: String(args.phone ?? ''),
-          source: String(args.source ?? 'Referral'),
-          stage: 'new',
-          value: typeof args.value === 'number' ? args.value : null,
-          notes: [String(args.notes ?? ''), ORIGIN_NOTE].filter(Boolean).join(' — '),
-          createdAt: today(),
-        })
-        .select()
-        .single();
-      if (error) return fail(error.message);
+      const data = await pgInsert<{ id: string; name: string; stage: string }>('leads', {
+        id: uid('ld'),
+        name,
+        contactName: String(args.contactName ?? ''),
+        email: String(args.email ?? ''),
+        phone: String(args.phone ?? ''),
+        source: String(args.source ?? 'Referral'),
+        stage: 'new',
+        value: typeof args.value === 'number' ? args.value : null,
+        notes: [String(args.notes ?? ''), ORIGIN_NOTE].filter(Boolean).join(' — '),
+        createdAt: today(),
+      });
       return text({ created: 'lead', id: data.id, name: data.name, stage: data.stage });
     }
 
@@ -391,22 +370,20 @@ async function runTool(name: string, args: Json) {
       const title = String(args.title ?? '').trim();
       if (!clientId || !title) return fail('clientId and title are required.');
 
-      const { data: client } = await getDb()
-        .from('clients')
-        .select('id,name')
-        .eq('id', clientId)
-        .maybeSingle();
+      const client = await pgFirst<{ id: string; name: string }>('clients', {
+        select: 'id,name',
+        eq: { id: clientId },
+      });
       if (!client) return fail(`No client with id ${clientId}. Call list_clients first.`);
 
       let milestones: Milestone[] = [];
       let timelineDays = typeof args.timelineDays === 'number' ? args.timelineDays : 0;
 
       if (typeof args.blueprintId === 'string' && args.blueprintId) {
-        const { data: bp } = await getDb()
-          .from('blueprints')
-          .select('milestones,timelineDays')
-          .eq('id', args.blueprintId)
-          .maybeSingle();
+        const bp = await pgFirst<{ milestones: Milestone[]; timelineDays: number }>(
+          'blueprints',
+          { select: 'milestones,timelineDays', eq: { id: args.blueprintId } },
+        );
         if (!bp) return fail(`No blueprint with id ${args.blueprintId}.`);
         milestones = cloneMilestones((bp.milestones ?? []) as Milestone[]);
         if (!timelineDays) timelineDays = Number(bp.timelineDays) || 28;
@@ -428,25 +405,20 @@ async function runTool(name: string, args: Json) {
         return fail('The breakdown has no priced line items.');
       }
 
-      const { count } = await getDb().from('quotes').select('id', { count: 'exact', head: true });
-      const number = `QT-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(3, '0')}`;
+      const count = await pgCount('quotes');
+      const number = `QT-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
       const validDays = typeof args.validDays === 'number' ? args.validDays : 30;
 
-      const { data, error } = await getDb()
-        .from('quotes')
-        .insert({
-          id: uid('qt'),
-          number,
-          title,
-          clientId,
-          validUntil: addDays(validDays),
-          status: 'draft', // never sent from here
-          milestones,
-          timelineDays: timelineDays || 28,
-        })
-        .select()
-        .single();
-      if (error) return fail(error.message);
+      const data = await pgInsert<{ id: string; number: string; validUntil: string }>('quotes', {
+        id: uid('qt'),
+        number,
+        title,
+        clientId,
+        validUntil: addDays(validDays),
+        status: 'draft', // never sent from here
+        milestones,
+        timelineDays: timelineDays || 28,
+      });
 
       return text({
         created: 'quote',
@@ -466,11 +438,10 @@ async function runTool(name: string, args: Json) {
       const name = String(args.name ?? '').trim();
       if (!clientId || !name) return fail('clientId and name are required.');
 
-      const { data: client } = await getDb()
-        .from('clients')
-        .select('id,name')
-        .eq('id', clientId)
-        .maybeSingle();
+      const client = await pgFirst<{ id: string; name: string }>('clients', {
+        select: 'id,name',
+        eq: { id: clientId },
+      });
       if (!client) return fail(`No client with id ${clientId}. Call list_clients first.`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -481,11 +452,17 @@ async function runTool(name: string, args: Json) {
       let days = 28;
 
       if (typeof args.blueprintId === 'string' && args.blueprintId) {
-        const { data: bp } = await getDb()
-          .from('blueprints')
-          .select('title,phases,timeline,timelineDays')
-          .eq('id', args.blueprintId)
-          .maybeSingle();
+        const bp = await pgFirst<{
+          title: string;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          phases: any[];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          timeline: any[];
+          timelineDays: number;
+        }>('blueprints', {
+          select: 'title,phases,timeline,timelineDays',
+          eq: { id: args.blueprintId },
+        });
         if (!bp) return fail(`No blueprint with id ${args.blueprintId}.`);
         phases = freshPhases(bp.phases ?? []);
         timeline = freshTimeline(bp.timeline ?? []);
@@ -494,10 +471,8 @@ async function runTool(name: string, args: Json) {
       }
 
       const start = String(args.startDate ?? today());
-      const { data, error } = await getDb()
-        .from('projects')
-        .insert({
-          id: uid('pr'),
+      const data = await pgInsert<{ id: string; name: string; status: string }>('projects', {
+        id: uid('pr'),
           name,
           clientId,
           ref: `${slugify(name).slice(0, 3).toUpperCase()}-${new Date()
@@ -512,12 +487,9 @@ async function runTool(name: string, args: Json) {
           summary: String(args.summary ?? ''),
           phases,
           timeline,
-          actionItems: [],
-          blueprintId: typeof args.blueprintId === 'string' ? args.blueprintId : null,
-        })
-        .select()
-        .single();
-      if (error) return fail(error.message);
+        actionItems: [],
+        blueprintId: typeof args.blueprintId === 'string' ? args.blueprintId : null,
+      });
 
       return text({
         created: 'project',
