@@ -1587,6 +1587,48 @@ function authorise(req: Request, url: URL): boolean {
   return last === MCP_TOKEN;
 }
 
+/**
+ * TEMPORARY request log, on while a client connection is being diagnosed.
+ *
+ * Writes what actually arrived so the handshake can be read back instead of
+ * guessed at. Secrets are redacted: the bearer token and the path token are
+ * replaced with a marker saying only whether they matched. Remove this, the
+ * call below, and the mcp_debug_log table once the issue is understood.
+ */
+async function logRequest(req: Request, url: URL, body: string) {
+  if (process.env.MCP_DEBUG !== '1') return;
+  try {
+    const headers: Record<string, string> = {};
+    for (const [k, v] of req.headers) {
+      headers[k] =
+        k.toLowerCase() === 'authorization'
+          ? v.replace(/^Bearer\s+/i, '').trim() === MCP_TOKEN
+            ? '<bearer: MATCHES token>'
+            : `<bearer: does NOT match, length ${v.length}>`
+          : v;
+    }
+    const last = url.pathname.split('/').filter(Boolean).pop();
+    await fetch(`${SUPABASE_URL}/rest/v1/mcp_debug_log`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_KEY ?? '',
+        authorization: `Bearer ${SERVICE_KEY}`,
+        'content-type': 'application/json',
+        prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        method: req.method,
+        path: url.pathname.replace(MCP_TOKEN ?? '\u0000', '<TOKEN>'),
+        query: url.search + (last === MCP_TOKEN ? ' [path token MATCHES]' : ' [path token absent/!=]'),
+        headers,
+        body: body.slice(0, 1000),
+      }),
+    });
+  } catch {
+    /* logging must never break the request */
+  }
+}
+
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
@@ -1621,6 +1663,8 @@ export default async function handler(req: Request): Promise<Response> {
 
   // A 204 may not carry a body. Passing one makes the Response constructor
   // throw, the function 502s, and every browser client fails its preflight.
+  if (req.method !== 'POST') await logRequest(req, url, '');
+
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
 
   // Streamable HTTP uses DELETE to end a session. This server keeps no session
@@ -1637,6 +1681,7 @@ export default async function handler(req: Request): Promise<Response> {
    * honest answer to those probes is "no such thing here".
    */
   if (url.pathname.startsWith('/.well-known/')) {
+    await logRequest(req, url, '[oauth discovery probe]');
     return json({ error: 'This server uses bearer token auth, not OAuth.' }, 404);
   }
 
@@ -1678,12 +1723,16 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: 'Server is missing Supabase credentials.' }, 500);
   }
   if (!authorise(req, url)) {
+    await logRequest(req, url, '[rejected: 401 before body read]');
     return json({ error: 'Unauthorised.' }, 401);
   }
 
+  const rawBody = await req.text();
+  await logRequest(req, url, rawBody);
+
   let body: Json;
   try {
-    body = (await req.json()) as Json;
+    body = JSON.parse(rawBody) as Json;
   } catch {
     return json(rpcError(null, -32700, 'Parse error'), 400);
   }
