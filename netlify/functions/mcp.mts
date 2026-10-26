@@ -1098,7 +1098,8 @@ async function runTool(name: string, args: Json) {
 
     case 'list_quotes': {
       const rows = await pgSelect<{ milestones: Milestone[] } & Record<string, unknown>>('quotes', {
-        select: 'id,number,clientId,title,status,milestones,createdAt,validUntil,convertedProjectId',
+        select:
+          'id,number,clientId,title,status,milestones,timelineDays,validUntil,convertedProjectId,blueprintId',
         eq: {
           clientId: typeof args.clientId === 'string' ? args.clientId : undefined,
           status: typeof args.status === 'string' ? args.status : undefined,
@@ -1112,9 +1113,10 @@ async function runTool(name: string, args: Json) {
           title: q.title,
           status: q.status,
           totalUsd: milestonesTotal((q.milestones ?? []) as Milestone[]),
-          createdAt: q.createdAt,
+          timelineDays: q.timelineDays,
           validUntil: q.validUntil,
           convertedProjectId: q.convertedProjectId,
+          blueprintId: q.blueprintId,
         })),
       );
     }
@@ -1587,18 +1589,43 @@ function authorise(req: Request, url: URL): boolean {
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
+
+  /*
+   * CORS. Browser-hosted clients (claude.ai connectors) send a preflight
+   * before every call, and anything less than a clean answer there means the
+   * real request is never sent — which surfaces to the user as a sign-in
+   * failure rather than as CORS, because the client falls back to assuming it
+   * needs to authenticate.
+   *
+   * Echo the headers the browser asks for rather than guessing a list: MCP
+   * sends Mcp-Session-Id and MCP-Protocol-Version, and the set has grown
+   * before. Mcp-Session-Id has to be exposed too, or the client cannot read
+   * the session id back off the response.
+   */
+  const cors = (): Record<string, string> => ({
+    'access-control-allow-origin': req.headers.get('origin') ?? '*',
+    'access-control-allow-headers':
+      req.headers.get('access-control-request-headers') ??
+      'authorization, content-type, accept, mcp-session-id, mcp-protocol-version, last-event-id',
+    'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+    'access-control-expose-headers': 'mcp-session-id',
+    'access-control-max-age': '86400',
+    vary: 'origin, access-control-request-headers',
+  });
+
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
-      headers: {
-        'content-type': 'application/json',
-        'access-control-allow-origin': '*',
-        'access-control-allow-headers': 'authorization, content-type, mcp-protocol-version',
-        'access-control-allow-methods': 'POST, GET, OPTIONS',
-      },
+      headers: { 'content-type': 'application/json', ...cors() },
     });
 
-  if (req.method === 'OPTIONS') return json({}, 204);
+  // A 204 may not carry a body. Passing one makes the Response constructor
+  // throw, the function 502s, and every browser client fails its preflight.
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
+
+  // Streamable HTTP uses DELETE to end a session. This server keeps no session
+  // state, so acknowledging it is the whole implementation.
+  if (req.method === 'DELETE') return new Response(null, { status: 204, headers: cors() });
 
   /*
    * OAuth discovery must 404.
@@ -1622,7 +1649,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method === 'GET' && (req.headers.get('accept') ?? '').includes('text/event-stream')) {
     return new Response('Method Not Allowed — this server is POST-only (Streamable HTTP).', {
       status: 405,
-      headers: { allow: 'POST', 'access-control-allow-origin': '*' },
+      headers: { allow: 'POST', ...cors() },
     });
   }
 
