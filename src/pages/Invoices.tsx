@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import SortControl from '@/src/components/SortControl';
+import { byDate, byNumber, byRank, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { CheckCircle, CurrencyDollar, DownloadSimple, MagnifyingGlass, PencilSimple, Plus, Receipt, Trash } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
@@ -59,6 +61,21 @@ const blankForm = (): FormState => ({
   notes: '',
 });
 
+/**
+ * Sort options for the invoice list. Built as a factory because sorting by
+ * client needs the lookup, which only exists inside the provider.
+ */
+const sortOptions = (
+  clientFor: (item: { clientId?: string }) => { name: string } | undefined,
+): SortOption<Invoice>[] => [
+  { id: 'issueDate', label: 'Issue date', compare: byDate((i) => i.issueDate), natural: 'desc' },
+  { id: 'dueDate', label: 'Due date', compare: byDate((i) => i.dueDate), natural: 'desc' },
+  { id: 'amount', label: 'Amount', compare: byNumber((i) => i.amount), natural: 'desc' },
+  { id: 'number', label: 'Invoice number', compare: byText((i) => i.number) },
+  { id: 'client', label: 'Client', compare: byText((i) => clientFor(i)?.name) },
+  { id: 'status', label: 'Status', compare: byRank(STATUSES, (i) => i.status) },
+];
+
 export default function Invoices() {
   const { invoices, clients, projects, settings, clientFor, projectFor, add, update, remove } =
     useStudio();
@@ -69,7 +86,7 @@ export default function Invoices() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
 
-  const rows = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return invoices
       .filter((i) => (statusFilter === 'all' ? true : i.status === statusFilter))
@@ -82,8 +99,11 @@ export default function Invoices() {
           i.notes.toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => b.issueDate.localeCompare(a.issueDate));
+;
   }, [invoices, query, statusFilter, clientFor]);
+
+  const sort = useSort(filtered, sortOptions(clientFor), 'invoices');
+  const rows = sort.items;
 
   const openAdd = () => {
     setEditingId(null);
@@ -186,7 +206,7 @@ export default function Invoices() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="MagnifyingGlass number, client or note…"
+            placeholder="Search number, client or note…"
             className="pl-10"
           />
         </div>
@@ -202,6 +222,7 @@ export default function Invoices() {
             </option>
           ))}
         </Select>
+        <SortControl sort={sort} />
       </Card>
 
       {rows.length === 0 ? (

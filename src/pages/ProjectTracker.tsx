@@ -31,6 +31,9 @@ import {
   projectHealth,
   projectProgress,
 } from '@/src/lib/tracker';
+import SortControl from '@/src/components/SortControl';
+import { projectSortOptions } from '@/src/lib/projectSorts';
+import { useSort } from '@/src/lib/useSort';
 import { DeleteProjectButton, ProjectStatusSelect } from '@/src/components/ProjectActions';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
@@ -61,6 +64,9 @@ export default function ProjectTracker() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { projects, clientFor, addActionItem } = useStudio();
+
+  const projectSort = useSort(projects, projectSortOptions(clientFor), 'tracker');
+  const railProjects = projectSort.items;
 
   const selected = projects.find((p) => p.id === projectId) ?? projects[0];
 
@@ -120,7 +126,9 @@ export default function ProjectTracker() {
           <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint px-1">
             Projects ({projects.length})
           </h3>
-          {projects.map((project) => {
+
+          <SortControl sort={projectSort} label="" className="px-1" />
+          {railProjects.map((project) => {
             const p = projectProgress(project).pct;
             const isActive = project.id === selected.id;
             return (

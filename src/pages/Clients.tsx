@@ -17,6 +17,8 @@ import {
 import { formatCurrency, initials } from '@/src/lib/utils';
 import { projectBudget, projectProgress } from '@/src/lib/tracker';
 import { outstandingTotal } from '@/src/lib/finance';
+import SortControl from '@/src/components/SortControl';
+import { byDate, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Client } from '@/src/types';
 
@@ -32,6 +34,14 @@ const blankForm = (): FormState => ({
   status: 'active',
 });
 
+const CLIENT_SORTS: SortOption<Client>[] = [
+  { id: 'name', label: 'Name', compare: byText((c) => c.name) },
+  { id: 'createdAt', label: 'Date added', compare: byDate((c) => c.createdAt), natural: 'desc' },
+  { id: 'industry', label: 'Industry', compare: byText((c) => c.industry) },
+  { id: 'location', label: 'Location', compare: byText((c) => c.location) },
+  { id: 'status', label: 'Status', compare: byText((c) => c.status) },
+];
+
 export default function Clients() {
   const { clients, projects, invoices, projectsForClient, createClient, update, deleteClient } =
     useStudio();
@@ -40,6 +50,8 @@ export default function Clients() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
+
+  const sort = useSort(clients, CLIENT_SORTS, 'clients');
 
   const openAdd = () => {
     setEditingId(null);
@@ -107,6 +119,13 @@ export default function Clients() {
         />
       </div>
 
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
+          Clients ({clients.length})
+        </h2>
+        <SortControl sort={sort} />
+      </div>
+
       {clients.length === 0 ? (
         <Card>
           <EmptyState
@@ -122,7 +141,7 @@ export default function Clients() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {clients.map((client) => {
+          {sort.items.map((client) => {
             const clientProjects = projectsForClient(client.id);
             const value = clientProjects.reduce((sum, p) => sum + projectBudget(p), 0);
             const owed = outstandingTotal(invoices.filter((i) => i.clientId === client.id));

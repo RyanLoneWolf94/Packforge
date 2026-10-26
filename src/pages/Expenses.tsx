@@ -16,8 +16,10 @@ import {
 } from '@/src/components/ui';
 import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { expenseTotal } from '@/src/lib/finance';
+import SortControl from '@/src/components/SortControl';
+import { byDate, byNumber, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
-import type { ExpenseCategory } from '@/src/types';
+import type { Expense, ExpenseCategory } from '@/src/types';
 
 const CATEGORIES: ExpenseCategory[] = [
   'software',
@@ -26,6 +28,13 @@ const CATEGORIES: ExpenseCategory[] = [
   'travel',
   'office',
   'other',
+];
+
+const EXPENSE_SORTS: SortOption<Expense>[] = [
+  { id: 'date', label: 'Date', compare: byDate((e) => e.date), natural: 'desc' },
+  { id: 'amount', label: 'Amount', compare: byNumber((e) => e.amount), natural: 'desc' },
+  { id: 'title', label: 'Description', compare: byText((e) => e.title) },
+  { id: 'category', label: 'Category', compare: byText((e) => e.category) },
 ];
 
 export default function Expenses() {
@@ -42,13 +51,13 @@ export default function Expenses() {
     billable: false,
   });
 
-  const rows = useMemo(
-    () =>
-      expenses
-        .filter((e) => (categoryFilter === 'all' ? true : e.category === categoryFilter))
-        .sort((a, b) => b.date.localeCompare(a.date)),
+  const filtered = useMemo(
+    () => expenses.filter((e) => (categoryFilter === 'all' ? true : e.category === categoryFilter)),
     [expenses, categoryFilter],
   );
+
+  const sort = useSort(filtered, EXPENSE_SORTS, 'expenses');
+  const rows = sort.items;
 
   const total = expenseTotal(expenses);
   const billable = expenseTotal(expenses.filter((e) => e.billable));
@@ -111,6 +120,7 @@ export default function Expenses() {
         <Card className="lg:col-span-2 overflow-hidden">
           <div className="p-4 border-b border-line flex items-center justify-between gap-3 flex-wrap">
             <h2 className="disp font-extrabold text-ink">All Expenses</h2>
+            <SortControl sort={sort} />
             <Select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as 'all' | ExpenseCategory)}

@@ -17,6 +17,8 @@ import {
 import SignatureModal from '@/src/components/SignatureModal';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
 import { daysUntil } from '@/src/lib/tracker';
+import SortControl from '@/src/components/SortControl';
+import { byDate, byNumber, byRank, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Contract, ContractStatus } from '@/src/types';
 
@@ -52,6 +54,19 @@ function expiryInfo(contract: Contract) {
   return null;
 }
 
+const CONTRACT_STATUS_ORDER = ['draft', 'pending', 'signed', 'expired'] as const;
+
+const contractSorts = (
+  clientFor: (item: { clientId?: string }) => { name: string } | undefined,
+): SortOption<Contract>[] => [
+  { id: 'expiresDate', label: 'Expiry date', compare: byDate((c) => c.expires), natural: 'desc' },
+  { id: 'signedAtDate', label: 'Date signed', compare: byDate((c) => c.signedAt), natural: 'desc' },
+  { id: 'title', label: 'Title', compare: byText((c) => c.title) },
+  { id: 'client', label: 'Client', compare: byText((c) => clientFor(c)?.name) },
+  { id: 'status', label: 'Status', compare: byRank(CONTRACT_STATUS_ORDER, (c) => c.status) },
+  { id: 'amount', label: 'Value', compare: byNumber((c) => c.amount), natural: 'desc' },
+];
+
 export default function Contracts() {
   const { contracts, clients, projects, clientFor, projectFor, add, update, remove } = useStudio();
 
@@ -60,6 +75,8 @@ export default function Contracts() {
   const [form, setForm] = useState<FormState>(blankForm);
   const [signing, setSigning] = useState<Contract | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Contract | null>(null);
+
+  const sort = useSort(contracts, contractSorts(clientFor), 'contracts');
 
   const openAdd = () => {
     setEditingId(null);
@@ -147,6 +164,13 @@ export default function Contracts() {
         />
       </div>
 
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
+          Contracts ({contracts.length})
+        </h2>
+        <SortControl sort={sort} />
+      </div>
+
       {contracts.length === 0 ? (
         <Card>
           <EmptyState
@@ -162,7 +186,7 @@ export default function Contracts() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {contracts.map((contract) => {
+          {sort.items.map((contract) => {
             const info = expiryInfo(contract);
             return (
               <Card

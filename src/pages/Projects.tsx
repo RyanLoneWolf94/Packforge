@@ -18,6 +18,9 @@ import {
 import { cn, formatDate } from '@/src/lib/utils';
 import { projectProgress } from '@/src/lib/tracker';
 import { DeleteProjectButton, ProjectStatusSelect } from '@/src/components/ProjectActions';
+import SortControl from '@/src/components/SortControl';
+import { projectSortOptions } from '@/src/lib/projectSorts';
+import { useSort } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
 import EditProjectModal from '@/src/components/EditProjectModal';
@@ -75,10 +78,13 @@ export default function Projects() {
   const [newPhaseName, setNewPhaseName] = useState('');
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const visibleProjects = useMemo(
+  const unsortedProjects = useMemo(
     () => projects.filter((p) => showArchived || p.status !== 'archived'),
     [projects, showArchived],
   );
+
+  const projectSort = useSort(unsortedProjects, projectSortOptions(clientFor), 'projects');
+  const visibleProjects = projectSort.items;
 
   // Fall back to the first visible project if the selection is gone or hidden.
   const selected =
@@ -228,7 +234,7 @@ export default function Projects() {
         <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-[600px] overflow-hidden pb-4">
           {/* Project rail */}
           <div className="w-full md:w-[300px] shrink-0 flex flex-col">
-            <div className="flex items-center justify-between gap-2 mb-3 px-1">
+            <div className="flex items-center justify-between gap-2 mb-2 px-1">
               <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
                 Projects ({visibleProjects.length})
               </h3>
@@ -241,6 +247,8 @@ export default function Projects() {
                 </button>
               ) : null}
             </div>
+
+            <SortControl sort={projectSort} label="" className="mb-3 px-1" />
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-none pb-8">
               {visibleProjects.map((project) => {

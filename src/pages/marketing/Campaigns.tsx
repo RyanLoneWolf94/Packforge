@@ -127,7 +127,7 @@ export default function Campaigns() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="MagnifyingGlass campaigns…"
+            placeholder="Search campaigns…"
             className="pl-10"
           />
         </div>

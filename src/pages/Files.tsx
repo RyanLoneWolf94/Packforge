@@ -31,8 +31,10 @@ import {
   removeStoredFile,
   uploadProjectFile,
 } from '@/src/lib/storage';
+import SortControl from '@/src/components/SortControl';
+import { byDate, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
-import type { FileKind } from '@/src/types';
+import type { FileAsset, FileKind } from '@/src/types';
 
 const KINDS: FileKind[] = ['pdf', 'image', 'doc', 'zip', 'video', 'other'];
 
@@ -44,6 +46,16 @@ const KIND_TONE: Record<FileKind, string> = {
   video: 'bg-orange-dim text-orange',
   other: 'bg-surface-2 text-ink-soft',
 };
+
+const fileSorts = (
+  clientFor: (item: { clientId?: string }) => { name: string } | undefined,
+): SortOption<FileAsset>[] => [
+  { id: 'uploadedAt', label: 'Date added', compare: byDate((f) => f.uploadedAt), natural: 'desc' },
+  { id: 'name', label: 'Name', compare: byText((f) => f.name) },
+  { id: 'kind', label: 'Type', compare: byText((f) => f.kind) },
+  { id: 'folder', label: 'Folder', compare: byText((f) => f.folder) },
+  { id: 'client', label: 'Client', compare: byText((f) => clientFor(f)?.name) },
+];
 
 export default function Files() {
   const { files, clients, projects, clientFor, projectFor, add, update, remove } = useStudio();
@@ -67,7 +79,7 @@ export default function Files() {
 
   const folders = useMemo(() => [...new Set(files.map((f) => f.folder))], [files]);
 
-  const rows = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return files
       .filter((f) => (folderFilter === 'all' ? true : f.folder === folderFilter))
@@ -78,8 +90,11 @@ export default function Files() {
           (clientFor(f)?.name ?? '').toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+;
   }, [files, query, folderFilter, clientFor]);
+
+  const sort = useSort(filtered, fileSorts(clientFor), 'files');
+  const rows = sort.items;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,10 +185,11 @@ export default function Files() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="MagnifyingGlass file or client…"
+            placeholder="Search file or client…"
             className="pl-10"
           />
         </div>
+        <SortControl sort={sort} />
         <Select
           value={folderFilter}
           onChange={(e) => setFolderFilter(e.target.value)}
