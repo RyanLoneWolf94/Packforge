@@ -28,6 +28,16 @@ export interface Client {
 /* ------------------------------- Projects ------------------------------ */
 
 export type ProjectStatus = 'planning' | 'active' | 'review' | 'completed' | 'archived';
+
+/** Lifecycle order, as the status control presents it. */
+export const PROJECT_STATUSES: ProjectStatus[] = [
+  'planning',
+  'active',
+  'review',
+  'completed',
+  'archived',
+];
+
 export type PhaseStatus = 'upcoming' | 'active' | 'done';
 
 export interface Deliverable {

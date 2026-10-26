@@ -17,6 +17,7 @@ import {
 } from '@/src/components/ui';
 import { cn, formatDate } from '@/src/lib/utils';
 import { projectProgress } from '@/src/lib/tracker';
+import { DeleteProjectButton, ProjectStatusSelect } from '@/src/components/ProjectActions';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
 import EditProjectModal from '@/src/components/EditProjectModal';
@@ -36,13 +37,7 @@ import type { ProjectStatus, ProjectTask, Subtask, TaskLane } from '@/src/types'
 
 const LANES: TaskLane[] = ['Todo', 'In Progress', 'Done'];
 
-const PROJECT_STATUSES: ProjectStatus[] = [
-  'planning',
-  'active',
-  'review',
-  'completed',
-  'archived',
-];
+
 
 const STATUS_TONE: Record<ProjectStatus, 'neutral' | 'active' | 'warning' | 'done'> = {
   planning: 'neutral',
@@ -297,31 +292,8 @@ export default function Projects() {
                   </h2>
 
                   <div className="flex items-center gap-3">
-                    {/* The project's lifecycle status — the one place it's set. */}
-                    <label className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                        Status
-                      </span>
-                      <Select
-                        value={selected.status}
-                        onChange={(e) => {
-                          const status = e.target.value as ProjectStatus;
-                          update('projects', selected.id, { status });
-                          toast.success(
-                            status === 'archived'
-                              ? `${selected.name} archived — hidden from the client portal`
-                              : `Status set to ${status}`,
-                          );
-                        }}
-                        className="py-1.5 text-[13px] w-[140px]"
-                      >
-                        {PROJECT_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
+                    {/* The project's lifecycle status — shared with the tracker. */}
+                    <ProjectStatusSelect project={selected} />
 
                     <button
                       onClick={() => setIsEditOpen(true)}
@@ -329,6 +301,11 @@ export default function Projects() {
                     >
                       <PencilSimple size={14} /> Edit
                     </button>
+
+                    <DeleteProjectButton
+                      project={selected}
+                      onDeleted={() => setSelectedId(null)}
+                    />
 
                     <RouterLink
                       to={`/admin/tracker/${selected.id}`}

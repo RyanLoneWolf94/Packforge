@@ -97,3 +97,36 @@ export async function pgCount(table: string): Promise<number> {
   const total = Number(range.split('/')[1]);
   return Number.isFinite(total) ? total : 0;
 }
+
+/**
+ * Patch one row by id. Returns the updated row, or null if no row matched —
+ * a silent zero-row update is the classic way a wrong id looks like success.
+ */
+export async function pgUpdate<T = Record<string, unknown>>(
+  table: string,
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<T | null> {
+  const res = await fetch(
+    `${URL_BASE}/rest/v1/${encodeURIComponent(table)}?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: headers({ prefer: 'return=representation' }),
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!res.ok) throw new Error(await readError(res));
+  const rows = (await res.json()) as T[];
+  return rows[0] ?? null;
+}
+
+/** Delete one row by id. Returns false if nothing matched. */
+export async function pgDelete(table: string, id: string): Promise<boolean> {
+  const res = await fetch(
+    `${URL_BASE}/rest/v1/${encodeURIComponent(table)}?id=eq.${encodeURIComponent(id)}`,
+    { method: 'DELETE', headers: headers({ prefer: 'return=representation' }) },
+  );
+  if (!res.ok) throw new Error(await readError(res));
+  const rows = (await res.json()) as unknown[];
+  return rows.length > 0;
+}

@@ -31,6 +31,7 @@ import {
   projectHealth,
   projectProgress,
 } from '@/src/lib/tracker';
+import { DeleteProjectButton, ProjectStatusSelect } from '@/src/components/ProjectActions';
 import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
 import EditProjectModal from '@/src/components/EditProjectModal';
@@ -93,11 +94,18 @@ export default function ProjectTracker() {
         subtitle="Tick deliverables here — the client portal updates instantly."
         actions={
           <>
+            {selected ? <ProjectStatusSelect project={selected} /> : null}
             {client ? <PortalShareButton token={client.portalToken} /> : null}
             {selected ? (
               <Button variant="secondary" icon={PencilSimple} onClick={() => setIsEditOpen(true)}>
                 Edit
               </Button>
+            ) : null}
+            {selected ? (
+              <DeleteProjectButton
+                project={selected}
+                onDeleted={() => navigate('/admin/projects')}
+              />
             ) : null}
             <Button icon={Plus} onClick={() => setIsNewOpen(true)}>
               New Project
