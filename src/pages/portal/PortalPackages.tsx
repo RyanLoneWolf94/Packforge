@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { CheckCircle, Stack } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Card, EmptyState, Modal, Button, StatusPill } from '@/src/components/ui';
 import PackageCard from '@/src/components/PackageCard';
 import { supabase } from '@/src/lib/supabase';
-import { formatCurrency } from '@/src/lib/utils';
+import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
 import type { OfferOption } from '@/src/types';
 
@@ -118,9 +118,32 @@ export default function PortalPackages() {
                 </div>
                 <p className="text-[13.5px] text-ink-soft mt-1.5">
                   You chose <b className="text-ink">{chosen?.name ?? 'a package'}</b>
-                  {chosen ? ` — ${formatCurrency(chosen.priceUsd)}` : ''}. We've set the project up
-                  and you'll see it under Progress.
+                  {chosen ? ` — ${formatCurrency(chosen.priceUsd)}` : ''}
+                  {offer.selectedAt ? ` on ${formatDate(offer.selectedAt)}` : ''}.
                 </p>
+
+                {/* What actually happens to them next, in order. */}
+                <ol className="mt-3 space-y-1.5 text-[13px] text-ink-soft">
+                  <li className="flex gap-2.5">
+                    <span className="text-positive font-bold">1.</span>
+                    Your project is set up with everything this package covers — open{' '}
+                    <b className="text-ink">Progress</b> to see the full list.
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="text-ink-faint font-bold">2.</span>
+                    Ryan confirms the start date and sends the invoice.
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="text-ink-faint font-bold">3.</span>
+                    Work begins, and each item is ticked off here as it is signed off.
+                  </li>
+                </ol>
+
+                <Link to={`/portal/${token}/progress`} className="inline-block mt-4">
+                  <Button size="sm" variant="secondary">
+                    See your project
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>

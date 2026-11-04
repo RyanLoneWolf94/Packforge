@@ -26,7 +26,24 @@ export default function ClientTaskBoard({ projectId }: { projectId: string }) {
   const { projectTasks, projects } = useStudio();
 
   const project = projects.find((p) => p.id === projectId);
-  const tasks = projectTasks.filter((t) => t.projectId === projectId);
+
+  /*
+   * Leave out anything already promoted to a deliverable.
+   *
+   * "Tasks to deliverables" copies a task's title onto a phase, so without
+   * this the client reads the same twelve items twice on one page — once
+   * under Phases & Deliverables and again here. Matched on title, the same
+   * way the studio board marks a task as already on the tracker.
+   */
+  const promoted = new Set(
+    (project?.phases ?? []).flatMap((ph) =>
+      ph.deliverables.map((d) => d.title.trim().toLowerCase()),
+    ),
+  );
+
+  const tasks = projectTasks.filter(
+    (t) => t.projectId === projectId && !promoted.has(t.title.trim().toLowerCase()),
+  );
   if (tasks.length === 0) return null;
 
   // Once work is organised into phases, show it that way — it matches the

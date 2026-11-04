@@ -1,4 +1,5 @@
-import { Briefcase, CalendarBlank } from '@phosphor-icons/react';
+import { useState } from 'react';
+import { Briefcase, CalendarBlank, CaretDown } from '@phosphor-icons/react';
 import {
   ActionItems,
   BrandSnapshotPanel,
@@ -8,9 +9,10 @@ import {
   hasBrandSnapshot,
 } from '@/src/components/tracker/PhaseTracker';
 import ClientTaskBoard from '@/src/components/ClientTaskBoard';
-import { Card, EmptyState, MetaPill } from '@/src/components/ui';
-import { formatCurrency, formatDate } from '@/src/lib/utils';
-import { projectBudget } from '@/src/lib/tracker';
+import ProjectSummaryText from '@/src/components/ProjectSummaryText';
+import { Card, EmptyState, MetaPill, ProgressRing, StatusPill } from '@/src/components/ui';
+import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
+import { projectBudget, projectProgress } from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Project } from '@/src/types';
 import { usePortalClient } from './usePortalClient';
@@ -18,6 +20,12 @@ import { usePortalClient } from './usePortalClient';
 /**
  * The full phase tracker, read-only. Renders the same components the studio
  * edits in `/admin/tracker`, passed `mode="client"`.
+ *
+ * Each project is a collapsible card. A client with three engagements was
+ * reading one unbroken column of phases, timelines and task boards with no
+ * way to tell where one project ended and the next began; collapsed, the page
+ * is a list of projects you open one at a time. The first is open by default
+ * so a single-project client sees no change.
  */
 export default function PortalProgress() {
   const client = usePortalClient();
@@ -37,60 +45,105 @@ export default function PortalProgress() {
   }
 
   return (
-    <div className="space-y-14">
-      {projects.map((project) => (
-        <ProjectProgress key={project.id} project={project} />
+    <div className="space-y-4">
+      {projects.map((project, i) => (
+        <ProjectCard key={project.id} project={project} defaultOpen={i === 0} />
       ))}
     </div>
   );
 }
 
-function ProjectProgress({ project }: { project: Project }) {
+function ProjectCard({ project, defaultOpen }: { project: Project; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const { pct } = projectProgress(project);
+  const value = projectBudget(project);
+
   return (
-    <div className="space-y-9">
-      <section className="space-y-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="disp text-2xl font-extrabold text-ink">{project.name}</h1>
-            <p className="text-ink-soft mt-1 max-w-2xl">{project.summary}</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
+    <Card className="overflow-hidden">
+      {/* The whole header is the toggle: a small chevron alone is too easy to
+          miss, and there is nothing else to click up here. */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={cn(
+          'w-full text-left p-6 flex items-center gap-5 transition-colors',
+          'hover:bg-surface-2/60',
+        )}
+      >
+        <ProgressRing value={pct} size={54} />
+
+        <div className="flex-1 min-w-0">
+          <h2 className="disp text-xl font-extrabold text-ink truncate">{project.name}</h2>
+          <div className="flex items-center gap-2 flex-wrap mt-1.5">
             <MetaPill>
               <CalendarBlank size={13} /> Target {formatDate(project.targetDelivery)}
             </MetaPill>
-            <MetaPill>
-              Value <b className="text-ink">{formatCurrency(projectBudget(project))}</b>
-            </MetaPill>
+            {value > 0 ? (
+              <MetaPill>
+                Value <b className="text-ink">{formatCurrency(value)}</b>
+              </MetaPill>
+            ) : null}
+            <StatusPill tone={pct === 100 ? 'positive' : pct > 0 ? 'active' : 'upcoming'}>
+              {pct}% complete
+            </StatusPill>
           </div>
         </div>
-        <TrackerSummary project={project} />
-      </section>
 
-      <ActionItems project={project} mode="client" />
+        <span
+          className={cn(
+            'shrink-0 flex items-center gap-1.5 text-[12px] font-bold',
+            'text-ink-soft',
+          )}
+        >
+          {open ? 'Hide details' : 'View details'}
+          <CaretDown
+            size={14}
+            className={cn('transition-transform', open && 'rotate-180')}
+          />
+        </span>
+      </button>
 
-      <section>
-        <SectionHead title="Phases & Deliverables" sub="Updated live as each phase progresses" />
-        <PhaseTracker project={project} mode="client" />
-      </section>
+      {open ? (
+        <div className="px-6 pb-6 pt-1 space-y-9 border-t border-line">
+          {project.summary ? (
+            <ProjectSummaryText text={project.summary} className="pt-5" lines={3} />
+          ) : null}
 
-      <section>
-        <SectionHead
-          title="Delivery Timeline"
-          sub="May complete sooner depending on revision turnaround"
-        />
-        <DeliveryTimeline project={project} mode="client" />
-      </section>
+          <TrackerSummary project={project} />
 
-      <ClientTaskBoard projectId={project.id} />
+          <ActionItems project={project} mode="client" />
 
-      {/* Only for work that actually has a brand identity to reveal. */}
-      {hasBrandSnapshot(project) ? (
-        <section>
-          <SectionHead title="Brand Snapshot" sub="Each piece appears as it's approved" />
-          <BrandSnapshotPanel project={project} />
-        </section>
+          <section>
+            <SectionHead
+              title="Phases & Deliverables"
+              sub="Updated live as each phase progresses"
+            />
+            <PhaseTracker project={project} mode="client" />
+          </section>
+
+          {/* An empty timeline is a heading over nothing. */}
+          {project.timeline.length > 0 ? (
+            <section>
+              <SectionHead
+                title="Delivery Timeline"
+                sub="May complete sooner depending on revision turnaround"
+              />
+              <DeliveryTimeline project={project} mode="client" />
+            </section>
+          ) : null}
+
+          <ClientTaskBoard projectId={project.id} />
+
+          {/* Only for work that actually has a brand identity to reveal. */}
+          {hasBrandSnapshot(project) ? (
+            <section>
+              <SectionHead title="Brand Snapshot" sub="Each piece appears as it's approved" />
+              <BrandSnapshotPanel project={project} />
+            </section>
+          ) : null}
+        </div>
       ) : null}
-    </div>
+    </Card>
   );
 }
 

@@ -1079,13 +1079,14 @@ function SentOffers() {
                     </a>
                   ) : null}
 
-                  {/* An accepted offer is the record of what the client agreed
-                      to, so it is not editable. */}
-                  {offer.status !== 'accepted' ? (
-                    <Button size="sm" variant="ghost" icon={PencilSimple} onClick={() => openEdit(offer)}>
-                      Edit
-                    </Button>
-                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={PencilSimple}
+                    onClick={() => openEdit(offer)}
+                  >
+                    Edit
+                  </Button>
 
                   {offer.status === 'sent' ? (
                     <Button
@@ -1113,13 +1114,15 @@ function SentOffers() {
                     </Button>
                   ) : null}
 
-                  <button
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={Trash}
                     onClick={() => setConfirmDelete(offer)}
-                    aria-label="Delete offer"
-                    className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
+                    className="text-ink-faint hover:text-red hover:bg-red-dim"
                   >
-                    <Trash size={15} />
-                  </button>
+                    Delete
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -1130,7 +1133,7 @@ function SentOffers() {
       <Modal
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
-        title="Edit sent offer"
+        title={editing?.status === 'accepted' ? 'Edit accepted offer' : 'Edit sent offer'}
         subtitle="Changes appear in the client's portal immediately"
         width="max-w-2xl"
         footer={
@@ -1143,6 +1146,14 @@ function SentOffers() {
         }
       >
         <div className="space-y-4">
+          {editing?.status === 'accepted' ? (
+            <div className="px-4 py-3 rounded-lg bg-gold-dim text-gold-deep text-[13px]">
+              This offer was <b>accepted</b>. It is the record of what the client agreed to, so
+              change it only to correct a mistake — and tell them if the price moves. Editing it
+              does not change the project it created.
+            </div>
+          ) : null}
+
           <Field label="Heading">
             <Input
               value={draft.title}
