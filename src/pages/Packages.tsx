@@ -29,6 +29,7 @@ import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
 import {
   BLUEPRINT_CATEGORIES,
+  type Offer,
   type OfferOption,
   type Package,
   type PackageAccent,
@@ -953,7 +954,42 @@ function SendModal({
 /* ========================================================================== */
 
 function SentOffers() {
-  const { offers, clientFor, update } = useStudio();
+  const { offers, clientFor, update, remove } = useStudio();
+
+  const [editing, setEditing] = useState<Offer | null>(null);
+  const [draft, setDraft] = useState<{ title: string; intro: string; options: OfferOption[] }>({
+    title: '',
+    intro: '',
+    options: [],
+  });
+  const [confirmDelete, setConfirmDelete] = useState<Offer | null>(null);
+
+  const openEdit = (offer: Offer) => {
+    setDraft({
+      title: offer.title,
+      intro: offer.intro,
+      // Deep-ish copy: editing must not mutate the stored snapshot until saved.
+      options: offer.options.map((o) => ({ ...o })),
+    });
+    setEditing(offer);
+  };
+
+  const save = () => {
+    if (!editing) return;
+    update('offers', editing.id, {
+      title: draft.title.trim() || editing.title,
+      intro: draft.intro.trim(),
+      options: draft.options,
+    });
+    setEditing(null);
+    toast.success("Offer updated — the client's portal shows the new version");
+  };
+
+  const patchOption = (id: string, patch: Partial<OfferOption>) =>
+    setDraft((d) => ({
+      ...d,
+      options: d.options.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+    }));
 
   if (offers.length === 0) {
     return (
@@ -993,18 +1029,37 @@ function SentOffers() {
                     </StatusPill>
                   </div>
                   <p className="text-[13px] text-ink-soft mt-0.5">
-                    {client?.name ?? 'Unknown client'} · {offer.options.length} tier
-                    {offer.options.length === 1 ? '' : 's'} · sent {formatDate(offer.createdAt)}
+                    {client?.name ?? 'Unknown client'} · sent {formatDate(offer.createdAt)}
                   </p>
+
+                  {/* Prices inline: two sends of the same package differ only by
+                      what is in them, and that is exactly what you need to see
+                      when deciding which one to pull. */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {offer.options.map((o) => (
+                      <span
+                        key={o.id}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-[11.5px] font-bold',
+                          o.id === offer.selectedOptionId
+                            ? 'bg-positive-dim text-positive'
+                            : 'bg-surface-2 text-ink-soft',
+                        )}
+                      >
+                        {o.name} · {formatCurrency(o.priceUsd)}
+                      </span>
+                    ))}
+                  </div>
+
                   {chosen ? (
-                    <p className="text-[13px] text-positive font-bold mt-1.5">
+                    <p className="text-[13px] text-positive font-bold mt-2">
                       Chose {chosen.name} ({formatCurrency(chosen.priceUsd)})
                       {offer.selectedAt ? ` on ${formatDate(offer.selectedAt)}` : ''}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {offer.projectId ? (
                     <Link to={`/admin/tracker/${offer.projectId}`}>
                       <Button size="sm" variant="secondary">
@@ -1023,6 +1078,15 @@ function SentOffers() {
                       </Button>
                     </a>
                   ) : null}
+
+                  {/* An accepted offer is the record of what the client agreed
+                      to, so it is not editable. */}
+                  {offer.status !== 'accepted' ? (
+                    <Button size="sm" variant="ghost" icon={PencilSimple} onClick={() => openEdit(offer)}>
+                      Edit
+                    </Button>
+                  ) : null}
+
                   {offer.status === 'sent' ? (
                     <Button
                       size="sm"
@@ -1035,11 +1099,163 @@ function SentOffers() {
                       Withdraw
                     </Button>
                   ) : null}
+
+                  {offer.status === 'withdrawn' ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        update('offers', offer.id, { status: 'sent' });
+                        toast.success('Back in the client portal');
+                      }}
+                    >
+                      Send again
+                    </Button>
+                  ) : null}
+
+                  <button
+                    onClick={() => setConfirmDelete(offer)}
+                    aria-label="Delete offer"
+                    className="p-1.5 text-ink-faint hover:text-red hover:bg-red-dim rounded transition-colors"
+                  >
+                    <Trash size={15} />
+                  </button>
                 </div>
               </div>
             </Card>
           );
         })}
+
+      {/* ------------------------------- Edit ------------------------------- */}
+      <Modal
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        title="Edit sent offer"
+        subtitle="Changes appear in the client's portal immediately"
+        width="max-w-2xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={save}>Save changes</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Heading">
+            <Input
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Message">
+            <Textarea
+              rows={3}
+              value={draft.intro}
+              onChange={(e) => setDraft({ ...draft, intro: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Tiers" hint="Correct a price, or drop a tier the client should not see">
+            <div className="space-y-2">
+              {draft.options.map((o) => (
+                <div key={o.id} className="flex items-center gap-2">
+                  <Input
+                    value={o.name}
+                    onChange={(e) => patchOption(o.id, { name: e.target.value })}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    value={String(o.priceUsd)}
+                    onChange={(e) => patchOption(o.id, { priceUsd: Number(e.target.value) || 0 })}
+                    className="w-28"
+                  />
+                  <button
+                    onClick={() =>
+                      setDraft((d) => ({
+                        ...d,
+                        options: d.options.filter((x) => x.id !== o.id),
+                      }))
+                    }
+                    aria-label={`Remove ${o.name}`}
+                    disabled={draft.options.length === 1}
+                    className="p-2 text-ink-faint hover:text-red rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Field>
+
+          <p className="text-[12px] text-ink-soft">
+            This edits the copy the client was sent, not the catalogue. Changing the package itself
+            leaves offers already sent untouched.
+          </p>
+        </div>
+      </Modal>
+
+      {/* ------------------------------ Delete ------------------------------ */}
+      <Modal
+        open={Boolean(confirmDelete)}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete this offer?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
+            {confirmDelete?.status === 'sent' ? (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  update('offers', confirmDelete.id, { status: 'withdrawn' });
+                  toast.success('Withdrawn instead — the record is kept');
+                  setConfirmDelete(null);
+                }}
+              >
+                Withdraw instead
+              </Button>
+            ) : null}
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (confirmDelete) {
+                  remove('offers', confirmDelete.id);
+                  toast.success('Offer deleted');
+                }
+                setConfirmDelete(null);
+              }}
+            >
+              Delete permanently
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink-soft">
+            <b className="text-ink">{confirmDelete?.title}</b> will be removed for good. The
+            package in your catalogue is unaffected.
+          </p>
+          {confirmDelete?.status === 'accepted' ? (
+            <div className="px-4 py-3 rounded-lg bg-gold-dim text-gold-deep text-[13px]">
+              This one was <b>accepted</b>. It is the record of what the client chose
+              {confirmDelete.projectId ? ' and what their project was created from' : ''}.
+              Deleting it loses that history — the project itself stays.
+            </div>
+          ) : null}
+          {confirmDelete?.status === 'sent' ? (
+            <p className="text-[13px] text-ink-soft">
+              To take it out of the client's portal without losing the record,{' '}
+              <b className="text-ink">withdraw</b> it instead.
+            </p>
+          ) : null}
+        </div>
+      </Modal>
     </div>
   );
 }
