@@ -190,6 +190,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       updatePhase: noop,
       removePhase: noop,
       addDeliverable: noop,
+      addDeliverables: noop,
       removeDeliverable: noop,
       addActionItem: noop,
       toggleActionItem: noop,

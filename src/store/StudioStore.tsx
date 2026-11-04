@@ -144,6 +144,18 @@ interface StudioContextValue extends StudioState {
   updatePhase: (projectId: string, phaseId: string, patch: Partial<TrackerPhase>) => void;
   removePhase: (projectId: string, phaseId: string) => void;
   addDeliverable: (projectId: string, phaseId: string, title: string, description: string) => void;
+  /**
+   * Add several deliverables at once, each to its own phase.
+   *
+   * Not a loop over addDeliverable: that reads the project from a ref which
+   * only syncs after render, so a synchronous run of calls would all start
+   * from the same stale copy and the last write would win. One pass, one
+   * write.
+   */
+  addDeliverables: (
+    projectId: string,
+    items: { phaseId: string; title: string; description?: string }[],
+  ) => void;
   removeDeliverable: (projectId: string, phaseId: string, deliverableId: string) => void;
   addActionItem: (projectId: string, title: string, detail: string) => void;
   toggleActionItem: (projectId: string, itemId: string) => void;
@@ -482,6 +494,29 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         patchProject(projectId, (project) => ({
           ...project,
           phases: project.phases.filter((ph) => ph.id !== phaseId),
+        }));
+      },
+
+      addDeliverables(projectId, items) {
+        if (items.length === 0) return;
+        patchProject(projectId, (project) => ({
+          ...project,
+          phases: project.phases.map((phase) => {
+            const mine = items.filter((i) => i.phaseId === phase.id);
+            if (mine.length === 0) return phase;
+            return {
+              ...phase,
+              deliverables: [
+                ...phase.deliverables,
+                ...mine.map((i) => ({
+                  id: uid('dl'),
+                  title: i.title,
+                  description: i.description ?? '',
+                  done: false,
+                })),
+              ],
+            };
+          }),
         }));
       },
 

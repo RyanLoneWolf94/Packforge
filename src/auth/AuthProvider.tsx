@@ -45,10 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  // Re-check admin membership whenever the signed-in identity changes.
+  /*
+   * Re-check admin membership when the signed-in *person* changes.
+   *
+   * Keyed on the user id, deliberately, not the session object. Supabase
+   * hands back a brand new session object every time it refreshes the token,
+   * which it does whenever the tab regains focus. Depending on the object
+   * meant every tab switch reset `isAdmin` to null, which made RequireAdmin
+   * fall back to its spinner, which unmounted the entire workspace — so a
+   * half-filled New Project or New Invoice form was thrown away just because
+   * you looked at another tab.
+   */
+  const userId = session?.user?.id ?? null;
+
   useEffect(() => {
     let cancelled = false;
-    if (!session) {
+    if (!userId) {
       setIsAdmin(null);
       return;
     }
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [userId]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {

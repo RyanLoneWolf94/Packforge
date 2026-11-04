@@ -25,7 +25,7 @@ import { useStudio } from '@/src/store/StudioStore';
 import NewProjectModal from '@/src/components/NewProjectModal';
 import EditProjectModal from '@/src/components/EditProjectModal';
 import ProjectSummary from '@/src/components/ProjectSummary';
-import type { ProjectStatus, ProjectTask, Subtask, TaskLane } from '@/src/types';
+import type { Project, ProjectStatus, ProjectTask, Subtask, TaskLane } from '@/src/types';
 
 /**
  * Day-to-day task board. Projects themselves are created and tracked in
@@ -65,8 +65,17 @@ type TaskForm = { title: string; tag: string; dueDate: string; phaseId: string }
 const blankTask = (): TaskForm => ({ title: '', tag: 'Medium', dueDate: '', phaseId: '' });
 
 export default function Projects() {
-  const { projects, projectTasks, clientFor, add, update, remove, addDeliverable, addPhase } =
-    useStudio();
+  const {
+    projects,
+    projectTasks,
+    clientFor,
+    add,
+    update,
+    remove,
+    addDeliverable,
+    addDeliverables,
+    addPhase,
+  } = useStudio();
 
   const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -119,6 +128,9 @@ export default function Projects() {
   // Tasks stay internal by default — this is the deliberate hand-off.
   const [promoting, setPromoting] = useState<ProjectTask | null>(null);
   const [promotePhaseId, setPromotePhaseId] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPicked, setBulkPicked] = useState<Set<string>>(new Set());
+  const [bulkFallbackPhase, setBulkFallbackPhase] = useState('');
 
   const promotedTitles = useMemo(() => {
     const titles = new Set<string>();
@@ -370,6 +382,35 @@ export default function Projects() {
                           ),
                         )}
                         {unassigned > 0 ? chip('unassigned', 'Unassigned', unassigned) : null}
+
+                        {/* Tasks are internal; deliverables are what the client
+                            sees. This is how work crosses that line. */}
+                        {all.some(
+                          (t) => !promotedTitles.has(t.title.trim().toLowerCase()),
+                        ) ? (
+                          <button
+                            onClick={() => {
+                              if (!selected.phases.length) {
+                                toast.error('Add a phase first — deliverables live on phases');
+                                return;
+                              }
+                              setBulkFallbackPhase(selected.phases[0].id);
+                              setBulkPicked(
+                                new Set(
+                                  all
+                                    .filter(
+                                      (t) => !promotedTitles.has(t.title.trim().toLowerCase()),
+                                    )
+                                    .map((t) => t.id),
+                                ),
+                              );
+                              setBulkOpen(true);
+                            }}
+                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold bg-orange-dim text-orange hover:bg-orange hover:text-white transition-colors"
+                          >
+                            <ListChecks size={13} /> Tasks to deliverables
+                          </button>
+                        ) : null}
                       </>
                     );
                   })()}
@@ -797,6 +838,26 @@ export default function Projects() {
         </div>
       </Modal>
 
+      <BulkPromoteModal
+        open={bulkOpen}
+        project={selected}
+        tasks={projectTasks.filter((t) => t.projectId === selected?.id)}
+        promotedTitles={promotedTitles}
+        picked={bulkPicked}
+        setPicked={setBulkPicked}
+        fallbackPhaseId={bulkFallbackPhase}
+        setFallbackPhaseId={setBulkFallbackPhase}
+        onClose={() => setBulkOpen(false)}
+        onConfirm={(items) => {
+          if (!selected) return;
+          addDeliverables(selected.id, items);
+          setBulkOpen(false);
+          toast.success(
+            `${items.length} deliverable${items.length === 1 ? '' : 's'} added to the tracker`,
+          );
+        }}
+      />
+
       <EditProjectModal
         project={selected}
         open={isEditOpen}
@@ -872,5 +933,173 @@ export default function Projects() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+/* ========================================================================== */
+/*  Tasks to deliverables                                                     */
+/* ========================================================================== */
+
+/**
+ * Bulk-copies board tasks onto phases as client-facing deliverables.
+ *
+ * A task already filed under a phase goes to that phase; anything unfiled
+ * goes to the fallback. Tasks whose title already exists as a deliverable are
+ * left out entirely, so running this twice doesn't duplicate the tracker.
+ */
+function BulkPromoteModal({
+  open,
+  project,
+  tasks,
+  promotedTitles,
+  picked,
+  setPicked,
+  fallbackPhaseId,
+  setFallbackPhaseId,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  project: Project | null;
+  tasks: ProjectTask[];
+  promotedTitles: Set<string>;
+  picked: Set<string>;
+  setPicked: (next: Set<string>) => void;
+  fallbackPhaseId: string;
+  setFallbackPhaseId: (id: string) => void;
+  onClose: () => void;
+  onConfirm: (items: { phaseId: string; title: string; description: string }[]) => void;
+}) {
+  if (!project) return null;
+
+  const candidates = tasks.filter((t) => !promotedTitles.has(t.title.trim().toLowerCase()));
+  const unfiled = candidates.filter((t) => !t.phaseId && picked.has(t.id)).length;
+
+  const toggle = (id: string) => {
+    const next = new Set(picked);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setPicked(next);
+  };
+
+  const phaseName = (id?: string) => {
+    const i = project.phases.findIndex((p) => p.id === id);
+    return i === -1 ? null : `${i + 1}. ${project.phases[i].name}`;
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Tasks to deliverables"
+      subtitle="Copies board tasks onto the client-facing tracker"
+      width="max-w-2xl"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={picked.size === 0}
+            onClick={() =>
+              onConfirm(
+                candidates
+                  .filter((t) => picked.has(t.id))
+                  .map((t) => ({
+                    phaseId: t.phaseId ?? fallbackPhaseId,
+                    title: t.title,
+                    description: t.subtasks.map((st) => st.title).join(' · '),
+                  })),
+              )
+            }
+          >
+            Add {picked.size} deliverable{picked.size === 1 ? '' : 's'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {candidates.length === 0 ? (
+          <p className="text-sm text-ink-soft">
+            Every task is already on the tracker. Nothing left to copy.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[12px] text-ink-soft">
+                {picked.size} of {candidates.length} selected
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPicked(new Set(candidates.map((t) => t.id)))}
+                  className="text-[12px] font-bold text-orange hover:text-orange-deep"
+                >
+                  Select all
+                </button>
+                <button
+                  onClick={() => setPicked(new Set())}
+                  className="text-[12px] font-bold text-ink-faint hover:text-ink"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1">
+              {candidates.map((task) => {
+                const on = picked.has(task.id);
+                const target = phaseName(task.phaseId);
+                return (
+                  <label
+                    key={task.id}
+                    className={cn(
+                      'flex items-start gap-3 px-3.5 py-2.5 rounded-lg border cursor-pointer transition-colors',
+                      on ? 'border-orange bg-orange-dim' : 'border-line hover:border-ink-faint',
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggle(task.id)}
+                      className="w-4 h-4 mt-0.5 rounded border-line accent-orange cursor-pointer"
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[13.5px] font-bold text-ink">{task.title}</span>
+                      <span className="block text-[11.5px] text-ink-faint mt-0.5">
+                        {task.lane}
+                        {target ? ` · ${target}` : ' · no phase yet'}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {unfiled > 0 ? (
+              <Field
+                label="Phase for unfiled tasks"
+                hint={`${unfiled} selected task${unfiled === 1 ? ' has' : 's have'} no phase yet`}
+              >
+                <Select
+                  value={fallbackPhaseId}
+                  onChange={(e) => setFallbackPhaseId(e.target.value)}
+                >
+                  {project.phases.map((ph, i) => (
+                    <option key={ph.id} value={ph.id}>
+                      {i + 1}. {ph.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            ) : null}
+
+            <p className="text-[12px] text-ink-soft">
+              Tasks stay on your board. Ticking the deliverable off in the tracker is what moves
+              the client's progress.
+            </p>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }
