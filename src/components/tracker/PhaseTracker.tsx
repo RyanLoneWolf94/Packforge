@@ -3,7 +3,13 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, Input, ProgressRing, StatusPill } from '@/src/components/ui';
 import { cn, formatCurrency } from '@/src/lib/utils';
-import { currentPhase, phaseStatus, projectBudget, projectProgress } from '@/src/lib/tracker';
+import {
+  currentPhase,
+  phaseStatus,
+  projectBudget,
+  projectComplete,
+  projectProgress,
+} from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Project } from '@/src/types';
 
@@ -32,7 +38,11 @@ export function TrackerSummary({ project }: { project: Project }) {
   const pct = usingTasks ? Math.round((tasksDone / tasks.length) * 100) : phases.pct;
   const done = usingTasks ? tasksDone : phases.done;
   const total = usingTasks ? tasks.length : phases.total;
-  const complete = total > 0 && pct === 100;
+  // Completion is every phase being done, not the deliverable ratio hitting
+  // 100 — an empty phase has no deliverables to drag the ratio down.
+  const complete = usingTasks ? total > 0 && tasksDone === total : projectComplete(project);
+  // All the listed work is ticked, but a phase is still waiting to be planned.
+  const awaitingDetail = !complete && total > 0 && done === total;
   const nothingSetUp = project.phases.length === 0 && tasks.length === 0;
 
   return (
@@ -60,7 +70,9 @@ export function TrackerSummary({ project }: { project: Project }) {
               ? 'Ready for final handover.'
               : usingTasks
                 ? `${done} of ${total} tasks complete.`
-                : `${done} of ${total} deliverables signed off.`}
+                : awaitingDetail
+                  ? `All ${total} listed deliverables signed off. ${phase?.name ?? 'The next phase'} is still being planned.`
+                  : `${done} of ${total} deliverables signed off.`}
         </div>
       </div>
       <div className="flex gap-1.5">

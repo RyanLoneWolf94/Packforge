@@ -19,16 +19,48 @@ export function phaseStatus(phase: TrackerPhase): PhaseStatus {
   return 'upcoming';
 }
 
+/**
+ * Progress across a project.
+ *
+ * `done` and `total` are the real deliverable counts, for display. `pct` is
+ * deliberately not `done / total`: a phase with nothing listed on it yet is
+ * work that has not started, not work that does not exist, so it counts as one
+ * outstanding unit. Without that, adding a phase to plan ahead makes a project
+ * read as finished — which is how a retainer with an empty Phase 2 came to
+ * show "All phases complete" and "Next up: Phase 2" at the same time.
+ */
 export function projectProgress(project: Project) {
   let done = 0;
   let total = 0;
+  let units = 0;
+  let unitsDone = 0;
+
   for (const phase of project.phases) {
+    if (phase.deliverables.length === 0) {
+      units += 1;
+      continue;
+    }
     for (const d of phase.deliverables) {
       total += 1;
-      if (d.done) done += 1;
+      units += 1;
+      if (d.done) {
+        done += 1;
+        unitsDone += 1;
+      }
     }
   }
-  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+
+  return { done, total, pct: units ? Math.round((unitsDone / units) * 100) : 0 };
+}
+
+/**
+ * Whether every phase is genuinely finished.
+ *
+ * The authority on completion, in place of `pct === 100`. A project with no
+ * phases at all is not complete, it is unplanned.
+ */
+export function projectComplete(project: Project): boolean {
+  return project.phases.length > 0 && project.phases.every((p) => phaseStatus(p) === 'done');
 }
 
 /** The first phase that isn't finished — what the client is waiting on. */

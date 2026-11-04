@@ -1,8 +1,9 @@
 import { ArrowRight, Briefcase, CalendarBlank, DownloadSimple, Receipt, Scroll, Signature } from '@phosphor-icons/react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ActionItems, TrackerSummary } from '@/src/components/tracker/PhaseTracker';
 import { Card, EmptyState, MetaPill, StatCard, StatusPill } from '@/src/components/ui';
-import { formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
+import { cn, formatCurrency, formatDate, relativeDays } from '@/src/lib/utils';
 import { currentPhase, projectBudget } from '@/src/lib/tracker';
 import { useStudio } from '@/src/store/StudioStore';
 import { usePortalClient } from './usePortalClient';
@@ -55,14 +56,27 @@ export default function PortalOverview() {
           hint={projects[0]?.packageName ?? 'See progress'}
           to={`${base}/progress`}
         />
-        <StatCard
-          icon={CalendarBlank}
-          tone="orange"
-          value={formatCurrency(engagementValue)}
-          label="Engagement Value"
-          hint="Phase breakdown"
-          to={`${base}/progress`}
-        />
+        {/* Only claim a value once there is one. "$0" beside an outstanding
+            balance reads as "this work is worth nothing". */}
+        {engagementValue > 0 ? (
+          <StatCard
+            icon={CalendarBlank}
+            tone="orange"
+            value={formatCurrency(engagementValue)}
+            label="Engagement Value"
+            hint="Phase breakdown"
+            to={`${base}/progress`}
+          />
+        ) : (
+          <StatCard
+            icon={CalendarBlank}
+            tone="neutral"
+            value="—"
+            label="Engagement Value"
+            hint="Confirmed on quotation"
+            to={`${base}/quotes`}
+          />
+        )}
         <StatCard
           icon={Receipt}
           tone={outstanding > 0 ? 'gold' : 'neutral'}
@@ -110,7 +124,7 @@ export default function PortalOverview() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <h3 className="disp text-xl font-extrabold text-ink">{project.name}</h3>
-                    <p className="text-sm text-ink-soft mt-0.5 max-w-2xl">{project.summary}</p>
+                    <ProjectSummaryText text={project.summary} />
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <MetaPill>
@@ -238,5 +252,33 @@ function QuickCard({
         <p className="text-[13px] text-ink-soft">{line}</p>
       </Card>
     </Link>
+  );
+}
+
+/**
+ * A project summary, clamped.
+ *
+ * Scope paragraphs run long — one retainer's is 749 characters against another
+ * project's 44 — and unclamped they swamp the overview. Short ones are left
+ * alone entirely so nothing gains a pointless "Show more".
+ */
+function ProjectSummaryText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 180;
+
+  if (!text) return null;
+
+  return (
+    <p className="text-sm text-ink-soft mt-0.5 max-w-2xl">
+      <span className={cn(!expanded && long && 'line-clamp-2')}>{text}</span>
+      {long ? (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="block mt-1 text-[12.5px] font-bold text-orange hover:text-orange-deep"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      ) : null}
+    </p>
   );
 }
