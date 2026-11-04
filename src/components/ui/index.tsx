@@ -62,8 +62,10 @@ export function Button({
 export function Card({
   className,
   children,
+  // React 19 passes `ref` as an ordinary prop, so spreading it onto the div
+  // is all a caller needs to scroll a card into view or measure it.
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.ComponentPropsWithRef<'div'>) {
   return (
     <div
       className={cn(

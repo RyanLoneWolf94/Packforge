@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Briefcase, CalendarBlank, CaretDown } from '@phosphor-icons/react';
 import {
   ActionItems,
@@ -21,15 +22,20 @@ import { usePortalClient } from './usePortalClient';
  * The full phase tracker, read-only. Renders the same components the studio
  * edits in `/admin/tracker`, passed `mode="client"`.
  *
- * Each project is a collapsible card. A client with three engagements was
- * reading one unbroken column of phases, timelines and task boards with no
- * way to tell where one project ended and the next began; collapsed, the page
- * is a list of projects you open one at a time. The first is open by default
- * so a single-project client sees no change.
+ * Each project is a collapsible card, and they all start closed: a client
+ * with three engagements was reading one unbroken column of phases, timelines
+ * and task boards with no way to tell where one project ended and the next
+ * began. Closed, the page is a short list of projects you open one at a time.
+ *
+ * `?p=<projectId>` opens one and scrolls to it, which is what the overview's
+ * per-project button links to. With only one project there is nothing to
+ * choose between, so it opens on its own.
  */
 export default function PortalProgress() {
   const client = usePortalClient();
   const { projectsForClient } = useStudio();
+  const [params] = useSearchParams();
+  const focused = params.get('p');
   const projects = projectsForClient(client.id).filter((p) => p.status !== 'archived');
 
   if (projects.length === 0) {
@@ -46,20 +52,39 @@ export default function PortalProgress() {
 
   return (
     <div className="space-y-4">
-      {projects.map((project, i) => (
-        <ProjectCard key={project.id} project={project} defaultOpen={i === 0} />
+      {projects.map((project) => (
+        <ProjectCard
+          key={project.id}
+          project={project}
+          defaultOpen={project.id === focused || projects.length === 1}
+          scrollTo={project.id === focused}
+        />
       ))}
     </div>
   );
 }
 
-function ProjectCard({ project, defaultOpen }: { project: Project; defaultOpen: boolean }) {
+function ProjectCard({
+  project,
+  defaultOpen,
+  scrollTo,
+}: {
+  project: Project;
+  defaultOpen: boolean;
+  scrollTo: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Arriving from the overview, put the project they asked for on screen.
+  useEffect(() => {
+    if (scrollTo) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [scrollTo]);
   const { pct } = projectProgress(project);
   const value = projectBudget(project);
 
   return (
-    <Card className="overflow-hidden">
+    <Card ref={ref} className="overflow-hidden scroll-mt-28">
       {/* The whole header is the toggle: a small chevron alone is too easy to
           miss, and there is nothing else to click up here. */}
       <button
