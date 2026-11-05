@@ -249,6 +249,12 @@ export interface FileAsset {
   clientId?: string;
   projectId?: string;
   /**
+   * The phase this file belongs to, when it was dropped on one in the
+   * tracker. Phase files are ordinary file records, so they reach the
+   * client Files tab through the same path as anything else.
+   */
+  phaseId?: string;
+  /**
    * Whether the client can see this in their portal. Internal working files
    * stay hidden by default so the studio can keep scratch work in the same
    * library as deliverables.

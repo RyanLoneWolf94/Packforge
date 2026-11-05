@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Bell, BellSlash, CheckCircle, Envelope, PencilSimple, Plus, Signature, Trash, Warning } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
@@ -17,7 +17,7 @@ import {
 import SignatureModal from '@/src/components/SignatureModal';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
 import { daysUntil } from '@/src/lib/tracker';
-import SortControl from '@/src/components/SortControl';
+import ListToolbar from '@/src/components/ListToolbar';
 import { byDate, byNumber, byRank, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Contract, ContractStatus } from '@/src/types';
@@ -76,7 +76,22 @@ export default function Contracts() {
   const [signing, setSigning] = useState<Contract | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Contract | null>(null);
 
-  const sort = useSort(contracts, contractSorts(clientFor), 'contracts');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return contracts
+      .filter((c) => statusFilter === 'all' || c.status === statusFilter)
+      .filter((c) =>
+        !q
+          ? true
+          : c.title.toLowerCase().includes(q) ||
+            (clientFor(c)?.name ?? '').toLowerCase().includes(q),
+      );
+  }, [contracts, query, statusFilter, clientFor]);
+
+  const sort = useSort(filtered, contractSorts(clientFor), 'contracts');
 
   const openAdd = () => {
     setEditingId(null);
@@ -164,14 +179,28 @@ export default function Contracts() {
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
-          Contracts ({contracts.length})
-        </h2>
-        <SortControl sort={sort} />
-      </div>
+      <ListToolbar
+        query={query}
+        onQuery={setQuery}
+        placeholder="Search title or client…"
+        filters={[
+          {
+            id: 'status',
+            allLabel: 'All statuses',
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: CONTRACT_STATUS_ORDER.map((s) => ({ value: s, label: s })),
+          },
+        ]}
+        sort={sort}
+        trailing={
+          <span className="text-[12px] text-ink-faint">
+            {sort.items.length} of {contracts.length}
+          </span>
+        }
+      />
 
-      {contracts.length === 0 ? (
+      {sort.items.length === 0 ? (
         <Card>
           <EmptyState
             icon={Signature}

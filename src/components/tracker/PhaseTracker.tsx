@@ -1,4 +1,4 @@
-import { ArrowCounterClockwise, ArrowSquareOut, Check, LinkSimple, Lock, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, Check, LinkSimple, Lock, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, Input, ProgressRing, StatusPill } from '@/src/components/ui';
@@ -10,6 +10,7 @@ import {
   projectComplete,
   projectProgress,
 } from '@/src/lib/tracker';
+import PhaseFiles from './PhaseFiles';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Project } from '@/src/types';
 
@@ -105,7 +106,6 @@ export function PhaseTracker({
 }) {
   const {
     toggleDeliverable,
-    setPhaseLink,
     addDeliverable,
     removeDeliverable,
     addPhase,
@@ -114,9 +114,6 @@ export function PhaseTracker({
   } = useStudio();
   const isAdmin = mode === 'admin';
 
-  // Link inputs are locally buffered so a save is explicit rather than firing
-  // a store write on every keystroke.
-  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   // Phase editing: a project started from scratch has no phases at all, so the
@@ -130,7 +127,6 @@ export function PhaseTracker({
     <div className="space-y-4">
       {project.phases.map((phase, idx) => {
         const status = phaseStatus(phase);
-        const draft = linkDrafts[phase.id] ?? phase.link;
 
         return (
           <Card
@@ -323,47 +319,7 @@ export function PhaseTracker({
               </button>
             ) : null}
 
-            <div className="border-t border-line pt-4 flex items-center gap-2.5 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                Files
-              </span>
-              {isAdmin ? (
-                <>
-                  <Input
-                    value={draft}
-                    onChange={(e) =>
-                      setLinkDrafts((prev) => ({ ...prev, [phase.id]: e.target.value }))
-                    }
-                    placeholder="Paste Google Drive / Docs link"
-                    className="flex-1 min-w-[200px]"
-                  />
-                  <Button
-                    variant="purple"
-                    size="sm"
-                    disabled={draft === phase.link}
-                    onClick={() => {
-                      setPhaseLink(project.id, phase.id, draft.trim());
-                      toast.success('Phase link saved');
-                    }}
-                  >
-                    Save link
-                  </Button>
-                </>
-              ) : phase.link ? (
-                <a
-                  href={phase.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-dim text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
-                >
-                  <ArrowSquareOut size={14} /> View phase files
-                </a>
-              ) : (
-                <span className="text-[13px] text-ink-faint italic">
-                  No files linked yet
-                </span>
-              )}
-            </div>
+            <PhaseFiles project={project} phase={phase} mode={mode} />
           </Card>
         );
       })}

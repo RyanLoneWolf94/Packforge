@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowSquareOut, Buildings, Envelope, LinkSimple, PencilSimple, Phone, Plus, Trash, Users } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import {
 import { formatCurrency, initials } from '@/src/lib/utils';
 import { projectBudget, projectProgress } from '@/src/lib/tracker';
 import { outstandingTotal } from '@/src/lib/finance';
-import SortControl from '@/src/components/SortControl';
+import ListToolbar from '@/src/components/ListToolbar';
 import { byDate, byText, useSort, type SortOption } from '@/src/lib/useSort';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Client } from '@/src/types';
@@ -51,7 +51,27 @@ export default function Clients() {
   const [form, setForm] = useState<FormState>(blankForm);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
 
-  const sort = useSort(clients, CLIENT_SORTS, 'clients');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return clients
+      .filter((c) => statusFilter === 'all' || c.status === statusFilter)
+      .filter((c) =>
+        !q
+          ? true
+          : [c.name, c.contactName, c.email, c.industry, c.location]
+              .some((v) => (v ?? '').toLowerCase().includes(q)),
+      );
+  }, [clients, query, statusFilter]);
+
+  const statuses: string[] = useMemo(
+    () => [...new Set(clients.map((c) => String(c.status)))].filter(Boolean),
+    [clients],
+  );
+
+  const sort = useSort(filtered, CLIENT_SORTS, 'clients');
 
   const openAdd = () => {
     setEditingId(null);
@@ -119,14 +139,28 @@ export default function Clients() {
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
-          Clients ({clients.length})
-        </h2>
-        <SortControl sort={sort} />
-      </div>
+      <ListToolbar
+        query={query}
+        onQuery={setQuery}
+        placeholder="Search name, contact, email, industry or location…"
+        filters={[
+          {
+            id: 'status',
+            allLabel: 'All statuses',
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: statuses.map((s) => ({ value: s, label: s })),
+          },
+        ]}
+        sort={sort}
+        trailing={
+          <span className="text-[12px] text-ink-faint">
+            {sort.items.length} of {clients.length}
+          </span>
+        }
+      />
 
-      {clients.length === 0 ? (
+      {sort.items.length === 0 ? (
         <Card>
           <EmptyState
             icon={Users}
