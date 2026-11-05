@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Briefcase, CalendarBlank, CaretDown } from '@phosphor-icons/react';
+import { Briefcase, CaretDown } from '@phosphor-icons/react';
 import {
   ActionItems,
   BrandSnapshotPanel,
@@ -10,6 +10,7 @@ import {
   hasBrandSnapshot,
 } from '@/src/components/tracker/PhaseTracker';
 import ClientTaskBoard from '@/src/components/ClientTaskBoard';
+import BrandIcon from '@/src/components/BrandIcon';
 import ProjectSummaryText from '@/src/components/ProjectSummaryText';
 import { Card, EmptyState, MetaPill, ProgressRing, StatusPill } from '@/src/components/ui';
 import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
@@ -101,7 +102,7 @@ function ProjectCard({
           <h2 className="disp text-xl font-extrabold text-ink truncate">{project.name}</h2>
           <div className="flex items-center gap-2 flex-wrap mt-1.5">
             <MetaPill>
-              <CalendarBlank size={13} /> Target {formatDate(project.targetDelivery)}
+              <BrandIcon name="calendar" badge={false} size={13} /> Target {formatDate(project.targetDelivery)}
             </MetaPill>
             {value > 0 ? (
               <MetaPill>

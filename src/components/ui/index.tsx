@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { X } from '@phosphor-icons/react';
 import { useEffect, type ComponentType, type ReactNode } from 'react';
 import { cn } from '@/src/lib/utils';
+import BrandIcon, { type BrandIconName, type BrandIconTone } from '@/src/components/BrandIcon';
 
 /**
  * Shared primitives. Every page previously hand-rolled its own modal shell,
@@ -114,13 +115,22 @@ const STAT_TONES = {
 
 export function StatCard({
   icon: Icon,
+  brandIcon,
+  brandTone = 'orange',
   value,
   label,
   tone = 'neutral',
   hint,
   to,
 }: {
-  icon: ComponentType<{ size?: number | string; strokeWidth?: number }>;
+  icon?: ComponentType<{ size?: number | string; strokeWidth?: number }>;
+  /**
+   * Draw the house glyph on a solid brand circle instead of a library icon
+   * in a tinted square. Used across the client portal, where a stock icon
+   * set is the first thing that makes a page look template-built.
+   */
+  brandIcon?: BrandIconName;
+  brandTone?: BrandIconTone;
   value: ReactNode;
   label: string;
   tone?: keyof typeof STAT_TONES;
@@ -130,14 +140,18 @@ export function StatCard({
 }) {
   const body = (
     <>
-      <div
-        className={cn(
-          'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-          STAT_TONES[tone],
-        )}
-      >
-        <Icon size={22} />
-      </div>
+      {brandIcon ? (
+        <BrandIcon name={brandIcon} tone={brandTone} size={48} />
+      ) : Icon ? (
+        <div
+          className={cn(
+            'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
+            STAT_TONES[tone],
+          )}
+        >
+          <Icon size={22} />
+        </div>
+      ) : null}
       <div className="min-w-0">
         <h3 className="text-3xl font-extrabold text-ink tracking-tight leading-none mb-1">
           {value}

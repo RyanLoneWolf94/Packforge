@@ -1,5 +1,6 @@
-import { ArrowRight, Briefcase, CalendarBlank, DownloadSimple, Receipt, Scroll, Signature } from '@phosphor-icons/react';
+import { ArrowRight, Briefcase, Receipt, Scroll, Signature } from '@phosphor-icons/react';
 import { useState } from 'react';
+import BrandIcon from '@/src/components/BrandIcon';
 import { Link } from 'react-router-dom';
 import { ActionItems, TrackerSummary } from '@/src/components/tracker/PhaseTracker';
 import { Card, EmptyState, MetaPill, StatCard, StatusPill } from '@/src/components/ui';
@@ -49,8 +50,8 @@ export default function PortalOverview() {
       {/* At a glance */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <StatCard
-          icon={Briefcase}
-          tone="purple"
+          brandIcon="briefcase"
+          brandTone="purple"
           value={projects.length}
           label="Active Projects"
           hint={projects[0]?.packageName ?? 'See progress'}
@@ -60,8 +61,8 @@ export default function PortalOverview() {
             balance reads as "this work is worth nothing". */}
         {engagementValue > 0 ? (
           <StatCard
-            icon={CalendarBlank}
-            tone="orange"
+            brandIcon="calendar"
+            brandTone="orange"
             value={formatCurrency(engagementValue)}
             label="Engagement Value"
             hint="Phase breakdown"
@@ -69,8 +70,8 @@ export default function PortalOverview() {
           />
         ) : (
           <StatCard
-            icon={CalendarBlank}
-            tone="neutral"
+            brandIcon="calendar"
+            brandTone="muted"
             value="—"
             label="Engagement Value"
             hint="Confirmed on quotation"
@@ -78,15 +79,16 @@ export default function PortalOverview() {
           />
         )}
         <StatCard
-          icon={Receipt}
-          tone={outstanding > 0 ? 'gold' : 'neutral'}
+          brandIcon="invoice"
+          brandTone={outstanding > 0 ? 'orange' : 'muted'}
           value={formatCurrency(outstanding)}
           label="Outstanding"
           hint={outstanding > 0 ? 'See invoices' : 'Nothing due'}
           to={`${base}/invoices`}
         />
         <StatCard
-          icon={DownloadSimple}
+          brandIcon="download"
+          brandTone="purple"
           tone="neutral"
           value={sharedFiles.length}
           label="Files Shared"
@@ -128,7 +130,7 @@ export default function PortalOverview() {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <MetaPill>
-                      <CalendarBlank size={13} /> Target {formatDate(project.targetDelivery)}
+                      <BrandIcon name="calendar" badge={false} size={13} /> Target {formatDate(project.targetDelivery)}
                     </MetaPill>
                     <MetaPill>
                       Next up: <b className="text-ink">{phase?.name ?? 'Handover'}</b>
@@ -142,7 +144,7 @@ export default function PortalOverview() {
                   to={`${base}/progress?p=${project.id}`}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface border border-purple text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
                 >
-                  View {project.name} in detail <ArrowRight size={13} />
+                  View {project.name} in detail <BrandIcon name="arrow-right" badge={false} size={13} />
                 </Link>
 
                 <ActionItems project={project} mode="client" />

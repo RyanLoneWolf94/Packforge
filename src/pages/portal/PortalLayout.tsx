@@ -1,5 +1,6 @@
-import { Archive, ChatCircle, Envelope, Gauge, Receipt, Scroll, ShieldCheck, Signature, SquaresFour, Stack } from '@phosphor-icons/react';
+import { ChatCircle, Envelope, ShieldCheck } from '@phosphor-icons/react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
+import BrandIcon, { type BrandIconName } from '@/src/components/BrandIcon';
 import { Card, EmptyState } from '@/src/components/ui';
 import { Logo } from '@/src/components/Logo';
 import { cn, initials } from '@/src/lib/utils';
@@ -14,16 +15,16 @@ import type { Client } from '@/src/types';
  * not the whole thing.
  */
 
-const NAV = [
-  { to: '', label: 'Overview', icon: SquaresFour, end: true },
-  { to: 'progress', label: 'Progress', icon: Gauge },
-  { to: 'invoices', label: 'Invoices', icon: Receipt },
-  { to: 'quotes', label: 'Quotes', icon: Scroll },
-  { to: 'files', label: 'Files', icon: Archive },
-  { to: 'contracts', label: 'Contracts', icon: Signature },
+const NAV: { to: string; label: string; icon: BrandIconName; end?: boolean }[] = [
+  { to: '', label: 'Overview', icon: 'overview', end: true },
+  { to: 'progress', label: 'Progress', icon: 'progress' },
+  { to: 'invoices', label: 'Invoices', icon: 'invoice' },
+  { to: 'quotes', label: 'Quotes', icon: 'quote' },
+  { to: 'files', label: 'Files', icon: 'files' },
+  { to: 'contracts', label: 'Contracts', icon: 'contract' },
 ];
 
-const PACKAGES_NAV = { to: 'packages', label: 'Packages', icon: Stack, end: false };
+const PACKAGES_NAV = { to: 'packages', label: 'Packages', icon: 'package' as BrandIconName, end: false };
 
 export default function PortalLayout() {
   const { token } = useParams();
@@ -73,7 +74,7 @@ export default function PortalLayout() {
                 )
               }
             >
-              <item.icon size={15} />
+              <BrandIcon name={item.icon} badge={false} size={15} />
               {item.label}
             </NavLink>
           ))}
