@@ -140,7 +140,7 @@ export default function PortalOverview() {
                 {/* Straight into this project's own section, already open. */}
                 <Link
                   to={`${base}/progress?p=${project.id}`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-purple-dim text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface border border-purple text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
                 >
                   View {project.name} in detail <ArrowRight size={13} />
                 </Link>

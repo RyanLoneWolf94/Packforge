@@ -171,15 +171,24 @@ export function StatCard({
 
 /* ----------------------------- StatusPill ----------------------------- */
 
+/*
+ * Outlined by default, solid only for the state that matters.
+ *
+ * Every tone used to be a wash of tinted pastel, which is the look of a
+ * template rather than a brand. Colour now lives in the border and the text;
+ * a solid fill is reserved for "this is the live one", so a glance finds the
+ * current phase instead of six equally loud lozenges.
+ */
 const PILL_TONES = {
-  active: 'bg-purple text-white',
-  done: 'bg-gold-dim text-gold-deep',
-  upcoming: 'bg-surface-2 text-ink-soft',
-  positive: 'bg-positive-dim text-positive',
-  warning: 'bg-gold-dim text-gold-deep',
-  danger: 'bg-red-dim text-red',
-  neutral: 'bg-surface-2 text-ink-soft',
-  brand: 'bg-orange text-white',
+  active: 'bg-purple text-white border border-purple',
+  brand: 'bg-orange text-white border border-orange',
+
+  done: 'bg-surface text-positive border border-positive/50',
+  positive: 'bg-surface text-positive border border-positive/50',
+  warning: 'bg-surface text-gold-deep border border-gold/60',
+  danger: 'bg-surface text-red border border-red/50',
+  upcoming: 'bg-surface text-ink-faint border border-line',
+  neutral: 'bg-surface text-ink-soft border border-line',
 } as const;
 
 export function StatusPill({
@@ -209,7 +218,7 @@ export function StatusPill({
 
 export function MetaPill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-2 text-ink-soft border border-line">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface text-ink-soft border border-line">
       {children}
     </span>
   );

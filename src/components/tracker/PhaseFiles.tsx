@@ -127,7 +127,7 @@ export default function PhaseFiles({
             href={phase.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-dim text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface border border-purple text-purple text-[13px] font-bold hover:bg-purple hover:text-white transition-colors"
           >
             <ArrowSquareOut size={14} /> View phase folder
           </a>

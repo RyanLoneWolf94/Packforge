@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Receipt, Trash, Wallet } from '@phosphor-icons/react';
+import { MagnifyingGlass, Plus, Receipt, Trash, Wallet } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -51,10 +51,14 @@ export default function Expenses() {
     billable: false,
   });
 
-  const filtered = useMemo(
-    () => expenses.filter((e) => (categoryFilter === 'all' ? true : e.category === categoryFilter)),
-    [expenses, categoryFilter],
-  );
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return expenses
+      .filter((e) => (categoryFilter === 'all' ? true : e.category === categoryFilter))
+      .filter((e) => (!q ? true : e.title.toLowerCase().includes(q)));
+  }, [expenses, categoryFilter, query]);
 
   const sort = useSort(filtered, EXPENSE_SORTS, 'expenses');
   const rows = sort.items;
@@ -120,6 +124,18 @@ export default function Expenses() {
         <Card className="lg:col-span-2 overflow-hidden">
           <div className="p-4 border-b border-line flex items-center justify-between gap-3 flex-wrap">
             <h2 className="disp font-extrabold text-ink">All Expenses</h2>
+            <div className="relative flex-1 min-w-[180px]">
+              <MagnifyingGlass
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"
+              />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search expenses…"
+                className="pl-10"
+              />
+            </div>
             <SortControl sort={sort} />
             <Select
               value={categoryFilter}

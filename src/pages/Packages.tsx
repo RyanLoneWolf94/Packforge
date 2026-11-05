@@ -106,7 +106,9 @@ function PackageCatalogue() {
             onClick={() => setTab(t)}
             className={cn(
               'px-4 py-2 rounded-full text-xs font-bold transition-colors',
-              tab === t ? 'bg-night text-white' : 'bg-surface-2 text-ink-soft hover:text-ink',
+              tab === t
+                ? 'bg-night text-white border border-night'
+                : 'bg-surface border border-line text-ink-soft hover:border-ink-faint hover:text-ink',
             )}
           >
             {t === 'offers' ? `Sent (${offers.length})` : `Catalogue (${packages.length})`}
@@ -170,7 +172,7 @@ function PackageCatalogue() {
                     {sortedTiers(pkg).map((t) => (
                       <span
                         key={t.id}
-                        className="px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-bold text-ink-soft"
+                        className="px-2.5 py-1 rounded-full bg-surface border border-line text-[11px] font-bold text-ink-soft"
                       >
                         {t.name}
                       </span>
@@ -936,7 +938,7 @@ function SendModal({
               ? sortedTiers(pkg).map((t) => (
                   <span
                     key={t.id}
-                    className="px-3 py-1.5 rounded-full bg-surface-2 text-[12px] font-bold text-ink-soft"
+                    className="px-3 py-1.5 rounded-full bg-surface border border-line text-[12px] font-bold text-ink-soft"
                   >
                     {t.name} · {formatCurrency(t.price)}
                   </span>
@@ -1042,8 +1044,8 @@ function SentOffers() {
                         className={cn(
                           'px-2.5 py-1 rounded-full text-[11.5px] font-bold',
                           o.id === offer.selectedOptionId
-                            ? 'bg-positive-dim text-positive'
-                            : 'bg-surface-2 text-ink-soft',
+                            ? 'bg-positive text-white border border-positive'
+                            : 'bg-surface border border-line text-ink-soft',
                         )}
                       >
                         {o.name} · {formatCurrency(o.priceUsd)}

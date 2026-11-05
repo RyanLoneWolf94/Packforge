@@ -363,8 +363,8 @@ export default function Projects() {
                         className={cn(
                           'px-3 py-1.5 rounded-full text-[11.5px] font-bold transition-colors',
                           phaseFilter === key
-                            ? 'bg-night text-white'
-                            : 'bg-surface-2 text-ink-soft hover:text-ink',
+                            ? 'bg-night text-white border border-night'
+                            : 'bg-surface border border-line text-ink-soft hover:border-ink-faint hover:text-ink',
                         )}
                       >
                         {label} <span className="opacity-60">{count}</span>
@@ -406,7 +406,7 @@ export default function Projects() {
                               );
                               setBulkOpen(true);
                             }}
-                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold bg-orange-dim text-orange hover:bg-orange hover:text-white transition-colors"
+                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold bg-surface border border-orange text-orange hover:bg-orange hover:text-white transition-colors"
                           >
                             <ListChecks size={13} /> Tasks to deliverables
                           </button>

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, CheckCircle, DownloadSimple, FloppyDisk, Layout, MagicWand, PaperPlaneTilt, PencilSimple, Plus, Scroll, Signature, Trash } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import ListToolbar from '@/src/components/ListToolbar';
 import { toast } from 'sonner';
 import {
   Button,
@@ -137,6 +138,8 @@ function phasesFromMilestones(milestones: QuoteMilestone[]): TrackerPhase[] {
   }));
 }
 
+const QUOTE_STATUS_LIST: QuoteStatus[] = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+
 export default function Quotations() {
   const { quotes, clients, blueprints, settings, clientFor, add, update, remove, createProject } =
     useStudio();
@@ -147,6 +150,21 @@ export default function Quotations() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() => blankForm(0));
   const [confirmDelete, setConfirmDelete] = useState<Quote | null>(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const visibleQuotes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return quotes
+      .filter((x) => statusFilter === 'all' || x.status === statusFilter)
+      .filter((x) =>
+        !q
+          ? true
+          : x.title.toLowerCase().includes(q) ||
+            x.number.toLowerCase().includes(q) ||
+            (clientFor(x)?.name ?? '').toLowerCase().includes(q),
+      );
+  }, [quotes, query, statusFilter, clientFor]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -339,7 +357,26 @@ export default function Quotations() {
         </Card>
       ) : (
         <div className="space-y-5">
-          {quotes.map((quote) => (
+          <ListToolbar
+            query={query}
+            onQuery={setQuery}
+            placeholder="Search title, number or client…"
+            filters={[
+              {
+                id: 'status',
+                allLabel: 'All statuses',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: QUOTE_STATUS_LIST.map((s) => ({ value: s, label: s })),
+              },
+            ]}
+            trailing={
+              <span className="text-[12px] text-ink-faint">
+                {visibleQuotes.length} of {quotes.length}
+              </span>
+            }
+          />
+          {visibleQuotes.map((quote) => (
             <Card key={quote.id} className="p-6 group">
               <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
                 <div>
