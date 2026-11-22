@@ -118,32 +118,42 @@ enough on its own.
 
 ## Resolution — 2026-11-22
 
-Reproduced first: calling  as the anonymous role returned the
+Reproduced first: calling `portal_snapshot('wyfix')` as the anonymous role returned the
 full client record, one project and one invoice. Eight of twelve tokens were an exact
 name slug; the remainder were the obvious brand slug.
 
-**Fixed**
+### A wider exposure than reported
 
--  now mints . The
+`src/data/seed.ts` held `cakes-and-bakes`, `wyfix`, `greyview` and `metoo-foundation` —
+not placeholders, but the **live** tokens for Marbl Hearth, WYFIX, Greyview and MeToo,
+identical to the database. The repository is public, so those four portals were readable
+by anyone who opened the repo, with no guessing required. The rotation below killed all
+four. No service-role key or MCP token was ever committed.
+
+### Fixed
+
+- `portal_register_client` now mints `replace(gen_random_uuid()::text, '-', '')`. The
   suffix loop went with it: random tokens do not collide in practice, and the loop was
-  itself a way to probe which names were taken. The marketing site needed no change.
--  in  uses , same shape.
+  itself a way to probe which names were already taken. The marketing site needed no
+  change, since it uses whatever token the function returns.
+- `createClient()` in `StudioStore.tsx` uses `newPortalToken()`, the same 128 bits.
 - Seed tokens are opaque, so the examples no longer model the broken pattern.
--  survives for project references, which are not secrets.
-- All 10 remaining clients rotated. Verified afterwards as anon: ,
-  ,  and  all return nothing, while a
-  current token still resolves. 10 of 10 tokens match .
-- Both  test clients deleted.
+- `slugify()` survives for project references, which are not secrets.
+- All 10 remaining clients rotated. Verified afterwards as anon: `wyfix`,
+  `tiny-giants-academy`, `cakes-and-bakes` and `greyview` all return nothing, while a
+  current token still resolves. 10 of 10 tokens match `^[0-9a-f]{32}$`.
+- Both `ZZ …` test clients deleted.
 
-**Outstanding**
+### Outstanding
 
-Every client needs their new link before they can open their portal. The list is
-deliberately **not** in this repository — it is public, and a portal link is a bearer
-credential.
+Every client needs their new link before they can open their portal. That list is
+deliberately **not** in this repository: a portal link is a bearer credential, and
+committing the last set here is precisely what widened this incident.
 
-**Note for next time**
+### Note for next time
 
 The lookup side was never the weakness, and the fix touched no route, component or
-policy. It is worth saying plainly: the bug was that a credential was derived from
-public information. Anything generated from a client's name, email or domain is
-guessable by definition.
+policy. The bug was that a credential was derived from public information — anything
+generated from a client's name, email or domain is guessable by definition. The
+secondary lesson is narrower and sharper: seed data that mirrors production is
+production data.
