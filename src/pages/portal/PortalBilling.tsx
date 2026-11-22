@@ -9,7 +9,7 @@ import { quoteTotal } from '@/src/lib/finance';
 import { downloadInvoicePdf, downloadQuotePdf } from '@/src/lib/pdf';
 import { useStudio } from '@/src/store/StudioStore';
 import type { Contract, InvoiceStatus, QuoteStatus } from '@/src/types';
-import { usePortalClient } from './usePortalClient';
+import { usePortalBase, usePortalClient } from './usePortalClient';
 
 /* Client-facing views of the studio's paperwork. All read-only. */
 
@@ -121,6 +121,7 @@ const QUOTE_TONE: Record<QuoteStatus, 'positive' | 'danger' | 'warning' | 'neutr
 
 export function PortalQuotes() {
   const client = usePortalClient();
+  const base = usePortalBase();
   const { quotes, update, settings, projectFor } = useStudio();
   // Milestones start collapsed to the phase totals; tap one to see its line items.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -241,7 +242,7 @@ export function PortalQuotes() {
                     </>
                   ) : null}
                   {quote.convertedProjectId && projectFor({ projectId: quote.convertedProjectId }) ? (
-                    <Link to={`/portal/${client.portalToken}/progress`}>
+                    <Link to={`${base}/progress`}>
                       <Button icon={Gauge}>Track this project</Button>
                     </Link>
                   ) : null}

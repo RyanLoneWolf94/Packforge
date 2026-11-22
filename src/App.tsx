@@ -84,6 +84,27 @@ export default function App() {
             >
               <Route index element={<PortalOverview />} />
             </Route>
+            {/* The slug is cosmetic and never validated; :token is the
+                credential. The bare /portal/:token form below still resolves,
+                so older links and anything that kept only the token work. */}
+            <Route
+              path="/portal/:slug/:token"
+              element={
+                <PortalProvider>
+                  <PortalLayout />
+                </PortalProvider>
+              }
+            >
+              <Route index element={<PortalOverview />} />
+              <Route path="progress" element={<PortalProgress />} />
+              <Route path="invoices" element={<PortalInvoices />} />
+              <Route path="quotes" element={<PortalQuotes />} />
+              <Route path="files" element={<PortalFiles />} />
+              <Route path="contracts" element={<PortalContracts />} />
+              <Route path="packages" element={<PortalPackages />} />
+              <Route path="*" element={<PortalOverview />} />
+            </Route>
+
             <Route
               path="/portal/:token"
               element={

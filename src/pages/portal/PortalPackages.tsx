@@ -7,6 +7,7 @@ import PackageCard from '@/src/components/PackageCard';
 import { supabase } from '@/src/lib/supabase';
 import { formatCurrency, formatDate } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
+import { usePortalBase } from './usePortalClient';
 import type { OfferOption } from '@/src/types';
 
 /**
@@ -20,6 +21,7 @@ import type { OfferOption } from '@/src/types';
 
 export default function PortalPackages() {
   const { token } = useParams();
+  const base = usePortalBase();
   const { offers, refresh } = useStudio();
 
   const [confirming, setConfirming] = useState<{ offerId: string; option: OfferOption } | null>(
@@ -139,7 +141,7 @@ export default function PortalPackages() {
                   </li>
                 </ol>
 
-                <Link to={`/portal/${token}/progress`} className="inline-block mt-4">
+                <Link to={`${base}/progress`} className="inline-block mt-4">
                   <Button size="sm" variant="secondary">
                     See your project
                   </Button>

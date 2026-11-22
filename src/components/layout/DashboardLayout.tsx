@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn, initials } from "@/src/lib/utils";
+import { cn, initials, portalPath } from "@/src/lib/utils";
 import { STUDIO } from "@/src/brand";
 import { Logo } from "@/src/components/Logo";
 import { useStudio } from "@/src/store/StudioStore";
@@ -267,9 +267,9 @@ function GlobalSearch() {
  */
 function PortalPreviewLink() {
   const { clients } = useStudio();
-  const token = clients[0]?.portalToken;
+  const previewClient = clients[0];
 
-  if (!token) {
+  if (!previewClient) {
     return (
       <span
         className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/25 cursor-not-allowed"
@@ -283,7 +283,7 @@ function PortalPreviewLink() {
 
   return (
     <Link
-      to={`/portal/${token}`}
+      to={portalPath(previewClient)}
       target="_blank"
       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition-colors"
       title={`Preview ${clients[0].name}'s portal`}

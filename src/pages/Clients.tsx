@@ -14,7 +14,7 @@ import {
   StatCard,
   StatusPill,
 } from '@/src/components/ui';
-import { formatCurrency, initials } from '@/src/lib/utils';
+import { formatCurrency, initials, portalPath } from '@/src/lib/utils';
 import { projectBudget, projectProgress } from '@/src/lib/tracker';
 import { outstandingTotal } from '@/src/lib/finance';
 import ListToolbar from '@/src/components/ListToolbar';
@@ -185,7 +185,7 @@ export default function Clients() {
                 <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/portal/${client.portalToken}`;
+                      const url = `${window.location.origin}${portalPath(client)}`;
                       navigator.clipboard
                         .writeText(url)
                         .then(() => toast.success('Portal link copied'))
@@ -276,7 +276,7 @@ export default function Clients() {
                 </div>
 
                 <Link
-                  to={`/portal/${client.portalToken}`}
+                  to={portalPath(client)}
                   target="_blank"
                   className="mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold bg-purple-dim text-purple hover:bg-purple hover:text-white transition-colors"
                 >

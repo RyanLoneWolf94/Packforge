@@ -27,7 +27,7 @@ const NAV: { to: string; label: string; icon: BrandIconName; end?: boolean }[] =
 const PACKAGES_NAV = { to: 'packages', label: 'Packages', icon: 'package' as BrandIconName, end: false };
 
 export default function PortalLayout() {
-  const { token } = useParams();
+  const { slug, token } = useParams();
   const { clients, clientByToken, offers } = useStudio();
 
   // A bare `/portal` falls back to the first client so the view is previewable.
@@ -47,7 +47,9 @@ export default function PortalLayout() {
     );
   }
 
-  const base = `/portal/${client.portalToken}`;
+  // Keep whichever shape the visitor arrived on, so navigating inside the
+  // portal never silently rewrites their URL.
+  const base = slug ? `/portal/${slug}/${client.portalToken}` : `/portal/${client.portalToken}`;
 
   // Packages only earns a tab once there is something to look at: an open
   // set to choose from, or the one already chosen.

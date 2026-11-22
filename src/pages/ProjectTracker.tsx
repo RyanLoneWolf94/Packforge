@@ -24,7 +24,7 @@ import {
   StatusPill,
   Textarea,
 } from '@/src/components/ui';
-import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
+import { cn, formatCurrency, formatDate, portalPath } from '@/src/lib/utils';
 import {
   projectBudget,
   projectEarned,
@@ -101,7 +101,7 @@ export default function ProjectTracker() {
         actions={
           <>
             {selected ? <ProjectStatusSelect project={selected} /> : null}
-            {client ? <PortalShareButton token={client.portalToken} /> : null}
+            {client ? <PortalShareButton client={client} /> : null}
             {selected ? (
               <Button variant="secondary" icon={PencilSimple} onClick={() => setIsEditOpen(true)}>
                 Edit
@@ -198,7 +198,7 @@ export default function ProjectTracker() {
               </MetaPill>
               {client ? (
                 <Link
-                  to={`/portal/${client.portalToken}`}
+                  to={portalPath(client)}
                   target="_blank"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-dim text-purple border border-purple/20 hover:bg-purple hover:text-white transition-colors"
                 >

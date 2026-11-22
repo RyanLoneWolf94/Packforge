@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { portalPath } from '@/src/lib/utils';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Warning } from '@phosphor-icons/react';
 import { Button, Card, Field, Input, Select } from '@/src/components/ui';
@@ -92,7 +93,7 @@ export default function JoinClient() {
               Your portal is where you'll find progress, quotes, invoices and paperwork. Bookmark
               this link — it's yours.
             </p>
-            <Link to={`/portal/${done.portalToken}`} className="inline-block mt-6">
+            <Link to={portalPath({ name: done.name, portalToken: done.portalToken })} className="inline-block mt-6">
               <Button icon={ArrowRight}>Open my portal</Button>
             </Link>
           </Card>

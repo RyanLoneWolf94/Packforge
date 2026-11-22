@@ -2,7 +2,7 @@ import { ArrowCounterClockwise, Check, LinkSimple, Lock, PencilSimple, Plus, Tra
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, Input, ProgressRing, StatusPill } from '@/src/components/ui';
-import { cn, formatCurrency } from '@/src/lib/utils';
+import { cn, formatCurrency, portalPath } from '@/src/lib/utils';
 import {
   currentPhase,
   phaseStatus,
@@ -676,13 +676,13 @@ export function ActionItems({
 
 /* ------------------------- Portal share button ------------------------ */
 
-export function PortalShareButton({ token }: { token: string }) {
+export function PortalShareButton({ client }: { client: { name: string; portalToken: string } }) {
   return (
     <Button
       variant="secondary"
       icon={LinkSimple}
       onClick={() => {
-        const url = `${window.location.origin}/portal/${token}`;
+        const url = `${window.location.origin}${portalPath(client)}`;
         navigator.clipboard
           .writeText(url)
           .then(() => toast.success('Client portal link copied'))

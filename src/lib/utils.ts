@@ -63,3 +63,20 @@ export function relativeDays(date: string | Date, now: Date = new Date()) {
   if (days === -1) return 'yesterday';
   return days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
 }
+
+/**
+ * The path to a client's portal: `/portal/{name-slug}/{token}`.
+ *
+ * The slug is decoration — it makes a link recognisable as that client's
+ * without being what grants access. Only the token is checked, server-side,
+ * so the slug can be stale or wrong and the link still works. Never derive a
+ * token from the name: that was the bug this shape replaced.
+ */
+export function portalPath(client: { name: string; portalToken: string }): string {
+  const slug =
+    client.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'client';
+  return `/portal/${slug}/${client.portalToken}`;
+}

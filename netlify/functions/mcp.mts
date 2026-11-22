@@ -630,6 +630,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 const addDays = (days: number) =>
   new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 
+/**
+ * A client's portal path. The name slug is decoration so a link is
+ * recognisable; only the token grants access, and it is checked server-side.
+ */
+const portalPath = (name: string, token: string) =>
+  `/portal/${slugify(name)}/${token}`;
+
 const slugify = (v: string) =>
   v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'client';
 
@@ -727,10 +734,10 @@ function pick(args: Json, keys: string[]): Record<string, unknown> {
 async function runTool(name: string, args: Json) {
   switch (name) {
     case 'list_clients': {
-      const rows = await pgSelect<{ portalToken: string }>('clients', {
+      const rows = await pgSelect<{ name: string; portalToken: string }>('clients', {
         select: 'id,name,contactName,email,phone,location,industry,status,portalToken',
       });
-      return text(rows.map((c) => ({ ...c, portalUrl: `${SITE}/portal/${c.portalToken}` })));
+      return text(rows.map((c) => ({ ...c, portalUrl: `${SITE}${portalPath(c.name, c.portalToken)}` })));
     }
 
     case 'list_blueprints': {
@@ -920,7 +927,7 @@ async function runTool(name: string, args: Json) {
         created: 'client',
         id: data.id,
         name: data.name,
-        portalUrl: `${SITE}/portal/${data.portalToken}`,
+        portalUrl: `${SITE}${portalPath(data.name, data.portalToken)}`,
       });
     }
 
@@ -1521,7 +1528,7 @@ async function runTool(name: string, args: Json) {
         id: row.id,
         name: row.name,
         changed: Object.keys(patch),
-        portalUrl: `${SITE}/portal/${row.portalToken}`,
+        portalUrl: `${SITE}${portalPath(row.name, row.portalToken)}`,
       });
     }
 

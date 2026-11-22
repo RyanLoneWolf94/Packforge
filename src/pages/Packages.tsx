@@ -25,7 +25,7 @@ import {
   Textarea,
 } from '@/src/components/ui';
 import PackageCard from '@/src/components/PackageCard';
-import { cn, formatCurrency, formatDate } from '@/src/lib/utils';
+import { cn, formatCurrency, formatDate, portalPath } from '@/src/lib/utils';
 import { useStudio } from '@/src/store/StudioStore';
 import {
   BLUEPRINT_CATEGORIES,
@@ -1071,7 +1071,7 @@ function SentOffers() {
                   ) : null}
                   {client ? (
                     <a
-                      href={`/portal/${client.portalToken}/packages`}
+                      href={`${portalPath(client)}/packages`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
