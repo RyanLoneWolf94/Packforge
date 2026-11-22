@@ -217,7 +217,18 @@ export function freshTimeline(timeline: TimelineWeek[]): TimelineWeek[] {
   return timeline.map((w) => ({ ...w, id: uid('wk'), done: false }));
 }
 
-/** Lowercase, hyphenated, URL-safe token for portal share links. */
+/**
+ * An unguessable portal token.
+ *
+ * Kept deliberately opaque: a client's portal is reached anonymously at
+ * /portal/{token}, so the token is a bearer credential and must not be
+ * derivable from anything public. 128 bits, hex, URL-safe.
+ */
+function newPortalToken(): string {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+
+/** Lowercase, hyphenated slug. Used for project references, never for tokens. */
 function slugify(value: string) {
   return (
     value
@@ -566,18 +577,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       },
 
       createClient(input) {
-        // portalToken is UNIQUE in the database, so two clients whose names
-        // slugify the same way would collide and fail the insert. Suffix until
-        // the token is free.
-        const base = slugify(input.name);
-        const taken = new Set(state.clients.map((c) => c.portalToken));
-        let portalToken = base;
-        for (let n = 2; taken.has(portalToken); n++) portalToken = `${base}-${n}`;
-
         const client: Client = {
           ...input,
           id: uid('cl'),
-          portalToken,
+          // The portal link IS the credential: it is the only thing standing
+          // between an anonymous visitor and this client's projects, invoices
+          // and contracts. It used to be the slugified business name, which is
+          // public information, so anyone who knew a client's name could open
+          // their dashboard. 128 bits of randomness instead.
+          portalToken: newPortalToken(),
           createdAt: new Date().toISOString().slice(0, 10),
         };
         setState((prev) => ({ ...prev, clients: [client, ...prev.clients] }));

@@ -35,7 +35,7 @@ const clients: Client[] = [
     location: 'Avondale, Harare',
     industry: 'Bakery & Catering',
     status: 'active',
-    portalToken: 'cakes-and-bakes',
+    portalToken: '8e00291735dc414bab5096b508562a2b',
     createdAt: '2026-07-06',
   },
   {
@@ -47,7 +47,7 @@ const clients: Client[] = [
     location: 'Harare, Zimbabwe',
     industry: 'Construction & Chemical Products',
     status: 'active',
-    portalToken: 'wyfix',
+    portalToken: '11329e7625ab4a96bb945e65fc34ee49',
     createdAt: '2026-04-12',
   },
   {
@@ -59,7 +59,7 @@ const clients: Client[] = [
     location: 'Nyanga, Zimbabwe',
     industry: 'Hospitality',
     status: 'active',
-    portalToken: 'greyview',
+    portalToken: '8ca16cdd51634a0ba4ed0c20472377cc',
     createdAt: '2026-05-28',
   },
   {
@@ -71,7 +71,7 @@ const clients: Client[] = [
     location: 'Bulawayo, Zimbabwe',
     industry: 'Non-profit / Advocacy',
     status: 'active',
-    portalToken: 'metoo-foundation',
+    portalToken: 'ac3588d6fed942718e82328487f40cb4',
     createdAt: '2026-06-15',
   },
 ];
