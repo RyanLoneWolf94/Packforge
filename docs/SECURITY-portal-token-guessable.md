@@ -1,7 +1,7 @@
 # Security: client portal tokens are guessable
 
 **Severity:** High (client confidential data exposed to anyone who knows a business name)
-**Status:** Open — needs fix
+**Status:** FIXED — 2026-11-22. Generation fixed in both paths, all existing tokens rotated, test clients deleted. New links must be sent to every client (list held outside this repo).
 **Found:** 2026-11-22, during an end-to-end test of the new marketing site's "Work with me" form, which registers clients through `portal_register_client`.
 **Area:** Client portal access control (`/portal/:token`)
 
@@ -95,13 +95,13 @@ enough on its own.
 
 ## Acceptance criteria
 
-- [ ] New clients from **both** paths (admin `createClient` and self-registration
+- [x] New clients from **both** paths (admin `createClient` and self-registration
       `portal_register_client`) get a random, unguessable token.
-- [ ] No token is derivable from the client's name.
-- [ ] All existing clients migrated to random tokens; old name-slug links no longer work.
-- [ ] Portal still loads for a valid token; a guessed/old token returns nothing.
-- [ ] Seed tokens are opaque.
-- [ ] The two `ZZ …` test clients are deleted.
+- [x] No token is derivable from the client's name.
+- [x] All existing clients migrated to random tokens; old name-slug links no longer work.
+- [x] Portal still loads for a valid token; a guessed/old token returns nothing.
+- [x] Seed tokens are opaque.
+- [x] The two `ZZ …` test clients are deleted.
 
 ## References
 
@@ -113,3 +113,37 @@ enough on its own.
 - `src/data/seed.ts` — seed tokens
 - `src/types.ts:24` — `portalToken` field
 - `portal_register_client` SQL function lives in Supabase (project `uniafzcpxyxmcxoccwue`), not in the repo.
+
+---
+
+## Resolution — 2026-11-22
+
+Reproduced first: calling  as the anonymous role returned the
+full client record, one project and one invoice. Eight of twelve tokens were an exact
+name slug; the remainder were the obvious brand slug.
+
+**Fixed**
+
+-  now mints . The
+  suffix loop went with it: random tokens do not collide in practice, and the loop was
+  itself a way to probe which names were taken. The marketing site needed no change.
+-  in  uses , same shape.
+- Seed tokens are opaque, so the examples no longer model the broken pattern.
+-  survives for project references, which are not secrets.
+- All 10 remaining clients rotated. Verified afterwards as anon: ,
+  ,  and  all return nothing, while a
+  current token still resolves. 10 of 10 tokens match .
+- Both  test clients deleted.
+
+**Outstanding**
+
+Every client needs their new link before they can open their portal. The list is
+deliberately **not** in this repository — it is public, and a portal link is a bearer
+credential.
+
+**Note for next time**
+
+The lookup side was never the weakness, and the fix touched no route, component or
+policy. It is worth saying plainly: the bug was that a credential was derived from
+public information. Anything generated from a client's name, email or domain is
+guessable by definition.
